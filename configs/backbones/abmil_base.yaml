@@ -1,0 +1,7 @@
+# ABMIL baseline config for UNI2-h features (input_feature_dim=1536).
+# pretrained is handled internally — do not add it here (ExperimentFactory passes it separately).
+input_feature_dim: 1536
+n_heads: 8
+head_dim: 192
+dropout: 0.1
+gated: true

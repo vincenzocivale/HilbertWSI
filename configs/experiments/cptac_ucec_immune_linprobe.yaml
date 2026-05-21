@@ -1,0 +1,9 @@
+source: cptac_ucec
+task: Immune_class
+experiment_type: linprobe
+model_name: hilbertwsi_hilbert_mamba
+model_kwargs_yaml: configs/backbones/mamba_base.yaml
+patch_features_dir: /data/hilbert-wsi/features/CPTAC_UCEC/h5_files
+splits_root: splits
+saveto: runs/cptac_ucec_hilbert_mamba
+combine_slides_per_patient: true

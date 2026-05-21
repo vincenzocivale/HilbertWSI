@@ -1,0 +1,11 @@
+# xLSTM (mLSTM) backbone config. UNI2-h tile dim = 1536.
+# Beck et al. 2024 "xLSTM: Extended Long Short-Term Memory"
+input_dim: 1536
+embedding_dim: 512
+backbone_kwargs:
+  depth: 4
+  num_heads: 8
+  context_length: 16384
+  proj_factor: 2.0
+  dropout: 0.1
+  pooling: mean

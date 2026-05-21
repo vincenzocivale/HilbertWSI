@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+.installed.cfg
+*.egg
+
+# Envs
+.venv/
+venv/
+env/
+ENV/
+
+tests/
+runs/
+runs_v2
+runs_v3/
+features/
+checkpoints/
+splits/
+
+
+# Tooling
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Editors
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Data / artifacts
+data/
+outputs/
+runs/
+checkpoints/
+wandb/
+*.h5
+*.pt
+*.pth
+*.ckpt
+
+# Plan/notes scratch
+scratch/

@@ -1,0 +1,9 @@
+# Example Patho-Bench experiment config for linear probing on TCGA-BRCA subtyping.
+# Used by scripts/run_benchmark.py.
+task: tcga_brca/BRCA_Subtype
+experiment_type: linprobe
+model_name: hilbertwsi_hilbert_mamba
+model_kwargs_yaml: configs/backbones/mamba_base.yaml
+patch_features_dir: ${PATCH_FEATURES_DIR}    # set in your shell before running
+saveto: runs/tcga_brca_hilbert_mamba
+combine_slides_per_patient: true

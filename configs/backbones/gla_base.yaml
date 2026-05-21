@@ -1,0 +1,10 @@
+# Gated Linear Attention backbone config. UNI2-h tile dim = 1536.
+# Simplified scalar-gate variant. Yang et al. 2024 "GLA Transformers".
+input_dim: 1536
+embedding_dim: 512
+backbone_kwargs:
+  depth: 4
+  n_heads: 8
+  mlp_ratio: 2.67
+  dropout: 0.1
+  pooling: mean
