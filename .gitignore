@@ -53,3 +53,6 @@ wandb/
 
 # Plan/notes scratch
 scratch/
+
+# Upstream repos downloaded for vendoring (content lives in hilbert_wsi/models/vendor/)
+2DMamba/

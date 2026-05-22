@@ -102,38 +102,64 @@ split_path, config_path = SplitFactory.from_hf(
 
 **Conclusione**: CI completamente sovrapposti → PANDA-ISUP saturo con UNI2-h. Non è un bug di pipeline.
 
-## Risultati runs/ — CPTAC-UCEC Immune_class (stato 2026-05-18)
+## Risultati runs/ — CPTAC-UCEC Immune_class (stato 2026-05-22 — killer experiment completo)
 
-| Modello | acc | macro-OVR-AUC | macro-F1 |
+| Modello | acc | macro-OVR-AUC | macro-F1 | w-kappa |
+|---|---|---|---|---|
+| Snake + Transformer ⭐ | **0.452 ± 0.013** | **0.629 ± 0.012** | **0.437 ± 0.013** | 0.355 ± 0.025 |
+| Zorder + Transformer | 0.448 ± 0.017 | 0.622 ± 0.013 | 0.436 ± 0.016 | 0.337 ± 0.026 |
+| Hilbert + Transformer | 0.444 ± 0.013 | 0.614 ± 0.010 | 0.425 ± 0.013 | 0.308 ± 0.026 |
+| Peano + Transformer | 0.445 ± 0.015 | 0.613 ± 0.012 | 0.430 ± 0.015 | 0.317 ± 0.029 |
+| Moore + Transformer | 0.435 ± 0.014 | 0.608 ± 0.011 | 0.422 ± 0.014 | 0.325 ± 0.025 |
+| Mean-pool (linprobe) | 0.403 ± 0.012 | 0.601 ± 0.010 | 0.387 ± 0.013 | 0.200 ± 0.031 |
+| Hilbert + Mamba | 0.405 ± 0.013 | 0.596 ± 0.011 | 0.387 ± 0.014 | 0.215 ± 0.030 |
+| Peano + Mamba | 0.401 ± 0.014 | 0.594 ± 0.012 | 0.387 ± 0.014 | — |
+| Similarity + Mamba | 0.408 ± 0.014 | 0.592 ± 0.011 | 0.391 ± 0.014 | — |
+| ABMIL | 0.387 ± 0.014 | 0.594 ± 0.013 | 0.373 ± 0.015 | 0.199 ± 0.031 |
+| Zorder + Mamba | 0.398 ± 0.012 | 0.588 ± 0.011 | 0.384 ± 0.013 | — |
+| Snake + Mamba | 0.400 ± 0.014 | 0.582 ± 0.011 | 0.385 ± 0.014 | — |
+| Moore + Mamba | 0.375 ± 0.013 | 0.573 ± 0.011 | 0.358 ± 0.013 | — |
+| **TransMIL (no order)** ⚠ | 0.338 ± 0.013 | 0.542 ± 0.013 | 0.252 ± 0.013 | 0.024 ± 0.026 |
+| **2DMamba (2D-native SSM)** ⚠ | 0.368 ± 0.014 | 0.527 ± 0.015 | 0.302 ± 0.017 | 0.042 ± 0.029 |
+| **Random + Transformer (fix)** ⚠ | 0.344 ± 0.012 | 0.519 ± 0.016 | 0.269 ± 0.014 | 0.010 ± 0.028 |
+| **MambaMIL (no order)** ⚠ | 0.319 ± 0.012 | 0.484 ± 0.014 | 0.258 ± 0.014 | -0.007 ± 0.025 |
+
+⭐ = best  ⚠ = no-ordering controls (killer experiment 2026-05-22)
+† 2DMamba run con patch_size=1024 (pure-Python pscan, 14.4M params); resolution loss reale (fino a 16 tile/cella)
+
+**Esito decision tree killer (CI overlap = ~95%, 2·SE):**
+
+| Confronto | Δ AUC | CI overlap? | Interpretazione |
 |---|---|---|---|
-| ABMIL | 0.387 ± 0.014 | 0.594 ± 0.013 | 0.373 ± 0.015 |
-| Mean-pool | 0.403 ± 0.012 | 0.601 ± 0.010 | 0.387 ± 0.013 |
-| Hilbert + Mamba | 0.405 ± 0.013 | 0.596 ± 0.011 | 0.387 ± 0.014 |
-| Moore + Mamba | 0.375 ± 0.013 | 0.573 ± 0.011 | 0.358 ± 0.013 |
-| Peano + Mamba | 0.401 ± 0.014 | 0.594 ± 0.012 | 0.387 ± 0.014 |
-| Similarity + Mamba | 0.408 ± 0.014 | 0.592 ± 0.011 | 0.391 ± 0.014 |
-| Snake + Mamba | 0.400 ± 0.014 | 0.582 ± 0.011 | 0.385 ± 0.014 |
-| Zorder + Mamba | 0.398 ± 0.012 | 0.588 ± 0.011 | 0.384 ± 0.013 |
-| Hilbert + Transformer | 0.444 ± 0.013 | 0.614 ± 0.010 | 0.425 ± 0.013 |
-| Moore + Transformer | 0.435 ± 0.014 | 0.608 ± 0.011 | 0.422 ± 0.014 |
-| Peano + Transformer | 0.445 ± 0.015 | 0.613 ± 0.012 | 0.430 ± 0.015 |
-| Snake + Transformer ⭐ | **0.452 ± 0.013** | **0.629 ± 0.012** | **0.437 ± 0.013** |
-| Zorder + Transformer | 0.448 ± 0.017 | 0.622 ± 0.013 | 0.436 ± 0.016 |
-| Similarity + Transformer | — | — | — (run incompleta) |
-| Random + Mamba | — | — | — (da lanciare) |
-| Random + Transformer | — | — | — (da lanciare, **critico**) |
+| Snake+Transformer vs TransMIL | **+0.087** | **DISJOINT** | Architettura Transformer DA SOLA non spiega il guadagno: ordering contribuisce indipendentemente |
+| Snake+Transformer vs Random+Transformer | **+0.110** | **DISJOINT** | Ordering matters per Transformer (Snake >> Random con stessa arch) |
+| Hilbert+Mamba vs MambaMIL | **+0.112** | **DISJOINT** | Ordering è **essenziale** per Mamba: senza ordering Mamba collassa a ~random |
+| Snake+Transformer vs ABMIL | +0.034 | overlap | Confronto classico borderline (CI parzialmente sovrapposte) |
+| Random+Transformer vs TransMIL | -0.024 | overlap | Nostra Transformer-arch senza ordering ≈ TransMIL → architetture comparabili senza ordering |
+| TransMIL vs ABMIL | -0.052 | DISJOINT | TransMIL **peggio di ABMIL** su UCEC (paper-not-faithful: overfit a 13M params o PPEG inadatto) |
+| 2DMamba vs Hilbert+Mamba | **-0.069** | **DISJOINT** | Paradigma 2D-nativo non bypassa 1D-ordering; 2DMamba cade nel cluster no-ordering |
+| 2DMamba vs ABMIL | **-0.067** | **DISJOINT** | ABMIL classico batte 2DMamba senza ordering strutturato |
+| 2DMamba vs Random+Transformer | +0.008 | overlap | 2DMamba ≈ random ordering → struttura 2D-nativa non sostituisce ordinamento esplicito |
 
-**Conclusioni UCEC**:
-- Task NON saturo (a differenza di PANDA)
-- Transformer > Mamba su tutti gli ordering (+0.02–0.04 AUC) — CI non sovrapposti
-- Snake+Transformer miglior modello in assoluto; ABMIL-to-best gap = +0.035 AUC (CI non sovrapposti)
-- Mamba ≈ mean-pool → ordering non aiuta SSM su task immune (segnale globale, non locale)
-- **Immune_class è task globale**: infiltrazione diffusa → Transformer (attenzione globale) avvantaggiato strutturalmente
-- **Random+Transformer è l'esperimento più critico**: se random ≈ snake → ordering non serve, Transformer basta (indebolisce claim); se snake >> random → ordering conta
+**Conclusioni killer (CPTAC-UCEC Immune_class):**
 
-**Pipeline verificata**:
+1. **Tesi VIVE in forma forte**: ordering 1D contribuisce ~+0.11 AUC sia per Transformer sia per Mamba, indipendentemente dall'architettura. Snake+Transformer e Hilbert+Mamba dominano tutti i no-ordering controls con CI disjoint.
+
+2. **Mamba beneficia più drammaticamente dell'ordering** (passa da AUC 0.484 random a 0.596 con Hilbert) rispetto al Transformer (0.519 → 0.629). Implica che gli SSM su WSI **richiedono** struttura spaziale imposta — senza, collassano a baseline random.
+
+3. **TransMIL/MambaMIL/2DMamba capacity-matched sotto-performano ABMIL classico (1.5M)** su UCEC. Cluster "no ordering" (Random+Transformer 0.519, TransMIL 0.542, 2DMamba 0.527, MambaMIL 0.484) tutti peggio o pari ad ABMIL. Possibili cause: overfit su 50-fold UCEC, architetture progettate per N>>1000 patch, PPEG/attention-pool inadatti per immune-subtyping (segnale globale diffuso).
+
+4. **Paradigma 2D-nativo (2DMamba) non bypassa 1D-ordering**: AUC 0.527 ± 0.015 cade nel cluster no-ordering. CI DISJOINT vs Hilbert+Mamba (0.596) e ABMIL (0.594). Inductive bias critico è l'ordinamento spaziale esplicito, non la 2D-nativeness. Caveat: patch_size=1024 (pure-Python pscan) introduce collision loss; paper-grade comparison richiederebbe CUDA kernel a patch_size=256.
+
+5. **Confronto Mamba vs Transformer**: Snake+Transformer (0.629) > Hilbert+Mamba (0.596) di +0.033 AUC, CI overlap marginale. Mamba al massimo eguaglia ABMIL/mean-pool con ordering. Confound capacity (22M vs 13M) non risolto.
+
+6. **Snake e Zorder leggermente meglio di Hilbert/Peano/Moore** per Transformer (Δ ≤ 0.015 AUC, CI overlap). Differenze tra orderings deboli; significative solo collettivamente vs random/no-ordering.
+
+**Pipeline verificata:**
 - Class balancing: funziona (Patho-Bench `ExperimentFactory.finetune(balanced=True)` usa `compute_class_weight` → `CrossEntropyLoss(weight=...)`)
-- Mamba: 22M params, Transformer: 13M params
+- Mamba: 22M params, Transformer: 13M params, TransMIL: 13.4M, MambaMIL: 20.7M (capacity matched ai counterpart HilbertWSI)
+- Peano ordering: **canonica** (S-curve column-major, verificata via test regressione vs reference table 3×3+9×9). Linea morta `rev_x = rev_x` rimossa in cleanup, comportamento invariato.
+- Random ordering: **fixed** (era seed=0 globale → ora `blake2b(coords) ^ base_seed` per-slide). I valori 0.519 AUC sopra usano il random fixato.
 
 ## Prossimi esperimenti (runs_v3/ e runs/)
 

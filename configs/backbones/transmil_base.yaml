@@ -1,0 +1,15 @@
+# TransMIL baseline (Shao et al., NeurIPS 2021) sized to match HilbertWSI
+# Transformer (~13.4M params, depth=4 in configs/backbones/transformer_base.yaml).
+# Used as the "Transformer-without-ordering" control in the killer experiment:
+# comparing it against `hilbertwsi_<order>_transformer` isolates the contribution
+# of the space-filling-curve ordering for Transformers.
+#
+# NOTE: paper default is depth=2 (~2.9M). We deliberately deviate from the paper
+# to keep capacity matched with HilbertWSI Transformer; document this in the
+# results table as a fair-comparison setting.
+input_dim: 1536
+embedding_dim: 512
+depth: 12          # depth=2 -> 2.9M, depth=12 -> ~13.4M (matched to HilbertWSI Transformer)
+n_heads: 8
+dropout: 0.1
+act: gelu

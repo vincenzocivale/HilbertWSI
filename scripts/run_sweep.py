@@ -42,13 +42,21 @@ from pathlib import Path
 # Experiment definitions
 # ---------------------------------------------------------------------------
 
-ORDERINGS = ["hilbert", "zorder", "snake", "moore", "peano", "random_perm", "similarity"]
+ORDERINGS = ["hilbert", "zorder", "snake", "moore", "peano", "random", "similarity"]
 BACKBONES = ["mamba", "transformer"]
 
 BACKBONE_CONFIGS = {
     "mamba": "configs/backbones/mamba_base.yaml",
     "transformer": "configs/backbones/transformer_base.yaml",
 }
+
+# Standalone slide encoders (no ordering applied — used as controls in the
+# killer experiment to isolate the contribution of space-filling-curve
+# ordering from the contribution of the architecture itself).
+SLIDE_ENCODER_BASELINES = [
+    ("transmil_baseline", "configs/backbones/transmil_base.yaml"),
+    ("mambamil_baseline", "configs/backbones/mambamil_base.yaml"),
+]
 
 _FINETUNE_DEFAULTS = dict(
     num_epochs=20,
@@ -93,6 +101,15 @@ def _all_experiments(args: argparse.Namespace) -> list[dict]:
         "model_kwargs_yaml": "configs/backbones/abmil_base.yaml",
         "saveto": str(runs_root / f"{args.source}_{args.task}_abmil"),
     })
+    # --- killer-experiment controls: standalone slide encoders, no ordering ---
+    for model_name, cfg_path in SLIDE_ENCODER_BASELINES:
+        exps.append({
+            **base,
+            "experiment_type": "finetune",
+            "model_name": model_name,
+            "model_kwargs_yaml": cfg_path,
+            "saveto": str(runs_root / f"{args.source}_{args.task}_{model_name}"),
+        })
 
     # --- HilbertWSI grid ---
     for backbone in BACKBONES:

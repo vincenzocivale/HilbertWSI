@@ -1,0 +1,21 @@
+# MambaMIL baseline (Yang et al., MICCAI 2024) sized to match HilbertWSI
+# Mamba (~22.4M params, depth=4 in configs/backbones/mamba_base.yaml). Used as
+# the "Mamba-without-ordering" control in the killer experiment: comparing it
+# against `hilbertwsi_hilbert_mamba` isolates the contribution of the Hilbert
+# ordering for SSMs.
+#
+# NOTE: paper default is depth=2 (~4M). We deliberately deviate from the paper
+# to keep capacity matched with HilbertWSI Mamba; document this in the results
+# table as a fair-comparison setting. Kernel is mamba_ssm.Mamba2 (parity with
+# the BiMambaBlock used by HilbertWSI), not the v1 selective scan from the
+# original paper.
+input_dim: 1536
+embedding_dim: 512
+depth: 12           # depth=2 -> 4.2M, depth=12 -> ~20.7M (matched to HilbertWSI Mamba)
+d_state: 64
+d_conv: 4
+expand: 2
+headdim: 64
+dropout: 0.1
+act: gelu
+attn_hidden: 128

@@ -1,0 +1,48 @@
+# 2DMambaMIL baseline (Zhang et al., CVPR 2025, arXiv 2412.00678).
+#
+# Direct paradigm rival to HilbertWSI: the 2D-selective SSM consumes tile
+# features on a dense 2D grid (no 1D ordering). Used in the killer experiment
+# to decide whether 1D-ordering is bypassed by 2D-native SSMs.
+#
+# Capacity & memory tuning
+# ------------------------
+# Pure-Python 2D pscan allocates `(H, W, d_inner, d_state)` activations per
+# layer; on a 12 GB GPU without the upstream CUDA kernel this forces the grid
+# to be coarse. Empirically (UCEC, N=2400 tiles, fwd+bwd):
+#
+#   depth dim ds  ps    params   fwd+bwd  peak
+#   ------------------------------------------
+#     2   512 16  1024   4.25M    0.23s   3.0GB
+#     4   512 16  1024   7.64M    0.16s   4.7GB
+#     4   512 32  1024   7.83M    0.30s   8.9GB
+#     8   512 16  1024  14.42M    0.31s   8.0GB   <-- chosen (cap-matched HilbertWSI Transformer)
+#     4   512 32   512   7.83M     OOM    >12GB
+#
+# patch_size=1024 means each 1024x1024 grid cell aggregates up to 16 of the
+# original 256px tiles (collisions resolved by upstream `reconstruct_2d_wsi`,
+# which keeps the last write per cell). Information loss is real but bounded;
+# we accept it for the first 2DMamba killer signal. If results are promising,
+# follow-up: build `cuda_kernel/build.sh` against torch 2.5.1 and re-run at
+# patch_size=256 with d_state=64 for paper-grade comparison.
+#
+# Per-slide grid: the wrapper in `hilbert_wsi/models/twodmamba.py` overrides
+# `mamba_2d_max_w/h` at forward time to each slide's actual coord extent, so
+# the build-time bounds below are upper limits only.
+input_dim: 1536
+embedding_dim: 512
+depth: 8                       # capacity-matched to HilbertWSI Transformer (13.4M)
+d_state: 16
+inner_layernorms: false
+dropout: 0.1
+pos_emb_type: linear
+pos_emb_dropout: 0.0
+
+# 2D grid quantisation
+mamba_2d_max_w: 50000          # build-time upper bound; per-slide grid shrunk dynamically in wrapper
+mamba_2d_max_h: 50000          # build-time upper bound; per-slide grid shrunk dynamically in wrapper
+mamba_2d_patch_size: 1024
+mamba_2d_pad_token: trainable
+
+# Kernel choice
+cuda_pscan: false              # true requires cuda_kernel/build.sh; pure-Python pscan otherwise
+patch_encoder_batch_size: 128

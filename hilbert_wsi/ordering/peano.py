@@ -24,21 +24,23 @@ class PeanoOrdering(OrderingScheme):
 
 
 def _peano_index(x: Tensor, y: Tensor, m: int) -> Tensor:
-    """Map (x, y) on an ``m`` x ``m`` grid (m=3**p) to Peano curve index."""
+    """Map (x, y) on an ``m`` x ``m`` grid (m=3**p) to Peano curve index.
+
+    Canonical Peano S-curve: column-major outer + column-major inner snake.
+    Only ``rev_y`` propagates between recursion levels because the construction
+    keeps the X-direction monotonic; reflections happen only along Y.
+    """
     out = torch.zeros_like(x, dtype=torch.long)
     fx = x.clone().long()
     fy = y.clone().long()
     block = m
-    rev_x = torch.zeros_like(fx, dtype=torch.bool)
     rev_y = torch.zeros_like(fy, dtype=torch.bool)
     while block > 1:
         block //= 3
-        col = (fx // block) % 3
+        c = (fx // block) % 3
         row = (fy // block) % 3
-        c = torch.where(rev_x, 2 - col, col)
         r = torch.where(rev_y, 2 - row, row)
         cell = torch.where(c % 2 == 0, c * 3 + r, c * 3 + (2 - r))
         out = out * 9 + cell
         rev_y = rev_y ^ (c % 2 == 1)
-        rev_x = rev_x
     return out

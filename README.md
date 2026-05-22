@@ -1,122 +1,176 @@
 # HilbertWSI
 
-> Order WSI tile embeddings along a **space-filling curve** (Hilbert by default), then process the sequence with **NLP-style architectures** (Mamba in v1).
+> Order WSI tile embeddings along a **space-filling curve**, then process the sequence with **NLP-style sequence models** (Mamba, Transformer, xLSTM, GLA).
 
-Aggregation in MIL for whole-slide images is dominated by attention pooling (ABMIL) and graph networks. HilbertWSI explores an alternative: cast a slide as a **1-D sequence of patch embeddings**, where the order is induced by a 2-D space-filling curve so spatial locality is preserved. Off-the-shelf sequence models (Mamba, Transformer, …) become drop-in slide encoders.
+Aggregation in MIL for whole-slide images is dominated by attention pooling (ABMIL) and graph networks. HilbertWSI casts a slide as a **1-D sequence of patch embeddings** where order is induced by a 2-D space-filling curve, so spatial locality is preserved. Off-the-shelf sequence models become drop-in slide encoders.
 
 ```
-H5 patch features                           Patho-Bench
-+ patch coords    ──►  Ordering scheme  ──► Sequence    ──► task / eval
-(N,D), (N,2)           (Hilbert, Z, …)      backbone        (linprobe, …)
-                                            (Mamba, …)
+H5 patch features                          Patho-Bench
++ patch coords   ──► Ordering scheme ──► Sequence    ──► task / eval
+(N,D), (N,2)         (Hilbert, Z, …)     backbone        (finetune, linprobe, …)
+                                         (Mamba, Transformer, …)
 ```
+
+## Key findings (CPTAC-UCEC Immune_class, May 2026)
+
+**Ordering matters: +0.11 AUC over no-ordering controls (CI disjoint).**
+
+| Model | macro-OVR-AUC |
+|---|---|
+| Snake + Transformer ⭐ | **0.629 ± 0.012** |
+| Hilbert + Mamba | 0.596 ± 0.011 |
+| ABMIL (no ordering) | 0.594 ± 0.013 |
+| 2DMamba (2D-native SSM) ⚠ | 0.527 ± 0.015 |
+| TransMIL (no ordering) ⚠ | 0.542 ± 0.013 |
+| Random + Transformer ⚠ | 0.519 ± 0.016 |
+| MambaMIL (no ordering) ⚠ | 0.484 ± 0.014 |
+
+⚠ = no-ordering control. Full table in [docs/benchmarks.md](docs/benchmarks.md).
+
+**Decision tree outcome:**
+- Snake+Transformer >> Random+Transformer (+0.11 AUC, **DISJOINT CI**) → ordering contributes independently of architecture
+- Hilbert+Mamba >> MambaMIL (+0.11 AUC, **DISJOINT CI**) → ordering is *essential* for Mamba; without it Mamba collapses to near-random
+- 2DMamba (CVPR 2025 rival) ≈ Random+Transformer (CI overlap) → 2D-native SSM does not bypass 1D ordering
+- All no-ordering controls ≤ ABMIL → over-parameterised models without spatial structure fail to outperform simple pooling
 
 ## Status
 
-v0.1 scaffold. Mamba backbone implemented; ordering registry has Hilbert, Z-order, Peano, Moore, snake, random, similarity. End-to-end Patho-Bench integration via `adapters/patho_bench.py`.
+| Component | Status |
+|---|---|
+| Ordering registry (7 schemes) | ✅ implemented + tested |
+| Mamba backbone (mamba-ssm 2.3.2) | ✅ implemented + tested |
+| Transformer backbone | ✅ implemented + tested |
+| xLSTM backbone | ✅ implemented (requires `pip install xlstm`) |
+| GLA backbone | ✅ implemented |
+| TransMIL baseline (no ordering) | ✅ implemented |
+| MambaMIL baseline (no ordering) | ✅ implemented |
+| 2DMamba baseline (CVPR 2025) | ✅ vendored + wrapper |
+| Patho-Bench integration | ✅ full finetune / linprobe / coxnet |
+| CPTAC-UCEC killer experiment | ✅ complete (16 models, 50 folds) |
+| PANDA-ISUP ablation | ✅ complete (task saturated) |
 
 ## Install
 
-### Option A — conda (recommended for reproducibility)
-
 ```bash
-git clone <repo>
-cd HilbertWSI
+# Recommended: use the pre-configured conda env
+conda activate hilbert-wsi-clean  # Python 3.11, torch 2.5.1+cu124, mamba-ssm 2.3.2
+
+# Or create from scratch
 conda env create -f environment.yml
-conda activate hilbert-wsi
-pip install -e .
+conda activate hilbert-wsi-clean
+pip install -e ".[bench,dev]"
 
-# Optional GPU-only — on a CUDA box:
-pip install "mamba-ssm>=2.2" "causal-conv1d>=1.4"
-
-# Optional bench deps — install when you actually run Patho-Bench:
+# Patho-Bench + TRIDENT (required for benchmarks)
 pip install "git+https://github.com/mahmoodlab/trident.git"
 pip install "git+https://github.com/mahmoodlab/Patho-Bench.git"
 ```
 
-### Option B — pip extras
-
-```bash
-pip install -e ".[mamba,bench,dev]"
-```
-
-`bench` pulls [TRIDENT](https://github.com/mahmoodlab/TRIDENT) and [Patho-Bench](https://github.com/mahmoodlab/Patho-Bench) directly from GitHub. The Mamba backbone needs CUDA; CPU-only smoke tests work without `mamba-ssm`.
+Note: `torch` is not in `pyproject.toml` — install manually with the CUDA wheel matching your system before `pip install -e .`.
 
 ## Quick start
 
-1. **Extract patch features** with TRIDENT (UNI2-h, CONCH, Virchow, GigaPath, ...). Skip if you already have H5 files with `features` + `coords`.
-2. **Run a Patho-Bench task** with a HilbertWSI encoder:
+```bash
+# Single Patho-Bench task (finetune)
+python -m scripts.run_benchmark \
+    --source cptac_ucec --task Immune_class \
+    --experiment_type finetune \
+    --model_name hilbertwsi_hilbert_mamba \
+    --patch_features_dir /path/to/features/CPTAC_UCEC \
+    --splits_root splits \
+    --saveto runs/ucec_hilbert_mamba \
+    --model_kwargs_yaml configs/backbones/mamba_base.yaml \
+    --num_epochs 20 --balanced --gpu 0
 
-   ```bash
-   python -m scripts.run_benchmark \
-       --task tcga_brca/BRCA_Subtype \
-       --experiment_type linprobe \
-       --model_name hilbertwsi_hilbert_mamba \
-       --patch_features_dir /path/to/uni2h_features \
-       --model_kwargs_yaml configs/backbones/mamba_base.yaml \
-       --saveto runs/brca_hilbert_mamba
-   ```
+# Sweep all orderings (same backbone)
+python -m scripts.run_sweep \
+    --source cptac_ucec --task Immune_class \
+    --backbone transformer \
+    --patch_features_dir /path/to/features/CPTAC_UCEC \
+    --splits_root splits \
+    --saveto runs/ucec_sweep_transformer
+```
 
-3. **Ordering ablation** (same backbone, sweep ordering schemes):
-
-   ```bash
-   python -m scripts.ablation_orderings \
-       --task tcga_brca/BRCA_Subtype \
-       --backbone mamba \
-       --patch_features_dir /path/to/uni2h_features \
-       --model_kwargs_yaml configs/backbones/mamba_base.yaml \
-       --saveto runs/ablation_brca
-   ```
-
-Model name format: `hilbertwsi_<ordering>_<backbone>`, e.g. `hilbertwsi_zorder_mamba`, `hilbertwsi_snake_mamba`.
+Model name format: `hilbertwsi_<ordering>_<backbone>`, e.g. `hilbertwsi_snake_transformer`.
+Baselines: `abmil_baseline`, `transmil_baseline`, `mambamil_baseline`, `twodmamba_baseline`.
 
 ## Repo layout
 
 ```
 hilbert_wsi/
-├── ordering/       # OrderingScheme ABC + 7 schemes (Hilbert, Z-order, Peano, Moore, snake, random, similarity)
-├── models/         # SequenceBackbone ABC + Mamba backbone, registry
-├── encoder.py      # HilbertSequenceEncoder — Trident-compatible slide encoder
-└── multiscale.py   # phase-2 placeholder
+├── ordering/           # OrderingScheme ABC + 7 schemes
+│   ├── hilbert.py      # Hilbert curve (z-order quantisation)
+│   ├── zorder.py       # Z-order / Morton code
+│   ├── peano.py        # Peano S-curve (canonical, verified)
+│   ├── moore.py        # Moore curve
+│   ├── snake.py        # Row-major snake scan
+│   ├── random_perm.py  # Per-slide deterministic random (blake2b seed)
+│   └── similarity.py   # Feature-similarity nearest-neighbour chain
+├── models/
+│   ├── mamba.py        # MambaBackbone (mamba-ssm 2.3.2, 22M @ depth=8)
+│   ├── transformer.py  # TransformerBackbone (13M @ depth=12)
+│   ├── xlstm.py        # xLSTMBackbone (requires xlstm package)
+│   ├── gla.py          # GLABackbone (pure-PyTorch chunk-parallel GLA)
+│   ├── mambamil.py     # MambaMIL baseline (no ordering control)
+│   ├── transmil.py     # TransMIL baseline (no ordering control)
+│   ├── twodmamba.py    # 2DMamba wrapper (paradigm rival from CVPR 2025)
+│   └── vendor/
+│       ├── MambaMIL.py        # Vendored MambaMIL (Mahmood Lab)
+│       ├── TransMIL.py        # Vendored TransMIL (Shao et al.)
+│       └── twodmamba/         # Vendored 2DMambaMIL (Zhang et al., CVPR 2025)
+├── encoder.py          # HilbertSequenceEncoder — Trident-compatible
+└── multiscale.py       # Phase 3 placeholder
 adapters/
-└── patho_bench.py  # register_hilbert_encoders() patches Trident encoder_factory
-configs/            # ordering / backbone / experiment YAMLs
-scripts/            # run_benchmark.py, ablation_orderings.py
-tests/              # ordering invariants + encoder smoke test
-docs/               # architecture.md, benchmarks.md
+└── patho_bench.py      # register_hilbert_encoders() — call before Patho-Bench
+configs/
+├── orderings/          # YAML per ordering scheme
+├── backbones/          # mamba_base, transformer_base, transmil_base, …
+└── experiments/        # experiment YAMLs
+scripts/
+├── run_benchmark.py    # CLI: single Patho-Bench experiment
+├── run_sweep.py        # sweep all orderings × one backbone
+├── ablation_orderings.py
+├── run_killer_experiment.sh   # Phase 2 killer (TransMIL, MambaMIL, Random)
+└── run_twodmamba_killer.sh    # Phase 3 killer (2DMamba)
+tests/
+├── test_orderings.py   # 30+ tests incl. Peano regression + random per-slide
+└── test_encoder.py     # smoke test + Mamba CUDA forward
+docs/
+├── architecture.md
+└── benchmarks.md
 ```
 
 ## Extending
 
-- **New ordering**: subclass `OrderingScheme`, register in `hilbert_wsi/ordering/__init__.py`. Single method: `(coords: (N,2)) -> perm: (N,)`.
-- **New backbone**: subclass `SequenceBackbone`, decorate with `@register_backbone("name")`. Single method: `(seq: (B,N,D), mask) -> (B,D_out)`.
+**New ordering**: subclass `OrderingScheme` in `hilbert_wsi/ordering/`, register in `hilbert_wsi/ordering/__init__.py::_REGISTRY`. Single method: `(coords: (N,2)) -> perm: (N,)`.
+
+**New backbone**: subclass `SequenceBackbone`, decorate with `@register_backbone("name")`, import in `hilbert_wsi/models/__init__.py`.
 
 See [docs/architecture.md](docs/architecture.md).
 
 ## Tests
 
 ```bash
-pytest tests/
+conda activate hilbert-wsi-clean
+pytest tests/ -v  # 30+ tests, includes Mamba CUDA forward
 ```
-
-The Mamba backbone test is skipped automatically if `mamba-ssm` is missing.
 
 ## Differentiation vs prior art
 
-| Prior work | Limitation we address |
+| Prior work | Limitation addressed |
 |---|---|
-| MambaBack (arXiv 2604.15729) | Only PANDA, only Mamba — we sweep multiple orderings and (planned) multiple sequence backbones over the full Patho-Bench task suite |
-| MambaMIL (MICCAI 2024) | Re-orders by feature similarity, not space-filling — we include similarity as a baseline |
-| Hilbert curves for WSI retrieval (arXiv 2005.06469, 2020) | No sequence model |
+| MambaBack (arXiv 2604.15729) | Only PANDA, only Mamba — we sweep 7 orderings × 4 backbones on non-saturated tasks |
+| MambaMIL (MICCAI 2024) | Re-orders by feature similarity, not space-filling; no Transformer comparison |
+| 2DMamba (arXiv 2412.00678, CVPR 2025) | 2D-native SSM; our killer exp shows it falls in the no-ordering performance cluster |
+| Hilbert curves for WSI retrieval (arXiv 2005.06469) | No sequence model; retrieval only |
 
 ## Citations
 
-If you build on this, please cite:
-
 - Mamba2: Dao & Gu, 2024.
-- Patho-Bench: Mahmood Lab, 2025. https://arxiv.org/abs/2502.06750
-- TRIDENT: Mahmood Lab, 2025. https://github.com/mahmoodlab/TRIDENT
-- MambaBack (prior art): arXiv 2604.15729.
+- Patho-Bench: Mahmood Lab, 2025. arXiv 2502.06750.
+- TRIDENT: Mahmood Lab, 2025.
+- 2DMamba: Zhang et al., CVPR 2025. arXiv 2412.00678.
+- MambaMIL: Yang et al., MICCAI 2024.
+- TransMIL: Shao et al., NeurIPS 2021.
 
 ## License
 

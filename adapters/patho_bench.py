@@ -141,6 +141,100 @@ def _build_abmil_baseline(freeze: bool = True, **kwargs: Any) -> ABMILWrapper:
     return ABMILWrapper(pretrained=False, freeze=freeze, **kwargs)
 
 
+class _SlideEncoderWrapper(nn.Module):
+    """Adapt a sequence backbone (forward(seq) -> (B, D)) to the Patho-Bench
+    slide-encoder contract: ``forward(batch, device) -> (B, embedding_dim)``.
+
+    Handles the (B, 1, N, D) shape Patho-Bench's collate_fn produces and the
+    device move, but ignores ``coords`` (no spatial ordering) — that is the
+    whole point of TransMIL / MambaMIL as "no-ordering" controls.
+    """
+
+    def __init__(self, inner: nn.Module) -> None:
+        super().__init__()
+        self.inner = inner
+        self.embedding_dim: int = inner.embedding_dim
+        self.precision: torch.dtype = torch.float32
+
+    def forward(self, batch: dict[str, Any], device: str | torch.device = "cuda") -> torch.Tensor:
+        feats = batch["features"].to(device)
+        if feats.dim() == 4:                            # (B, S, N, D) -> (B*S, N, D)
+            B, S, N, D = feats.shape
+            feats = feats.reshape(B * S, N, D)
+        return self.inner(feats)
+
+
+def _build_transmil_baseline(**kwargs: Any) -> _SlideEncoderWrapper:
+    """Build TransMIL baseline. Kwargs follow ``configs/backbones/transmil_base.yaml``."""
+    from hilbert_wsi.models.transmil import TransMILBackbone
+    # Patho-Bench passes ``pretrained`` / ``freeze`` for every encoder — drop them.
+    kwargs.pop("pretrained", None)
+    kwargs.pop("freeze", None)
+    input_dim = kwargs.pop("input_dim", None)
+    if input_dim is None:
+        raise ValueError("transmil_baseline needs `input_dim` (patch feature dim).")
+    # `backbone_kwargs` envelope (if someone wraps under HilbertWSI-style YAML).
+    bb_kwargs = kwargs.pop("backbone_kwargs", None) or {}
+    merged = {**kwargs, **bb_kwargs}
+    inner = TransMILBackbone(input_dim=input_dim, **merged)
+    return _SlideEncoderWrapper(inner)
+
+
+def _build_mambamil_baseline(**kwargs: Any) -> _SlideEncoderWrapper:
+    """Build MambaMIL baseline. Kwargs follow ``configs/backbones/mambamil_base.yaml``."""
+    from hilbert_wsi.models.mambamil import MambaMILBackbone
+    kwargs.pop("pretrained", None)
+    kwargs.pop("freeze", None)
+    input_dim = kwargs.pop("input_dim", None)
+    if input_dim is None:
+        raise ValueError("mambamil_baseline needs `input_dim` (patch feature dim).")
+    bb_kwargs = kwargs.pop("backbone_kwargs", None) or {}
+    merged = {**kwargs, **bb_kwargs}
+    inner = MambaMILBackbone(input_dim=input_dim, **merged)
+    return _SlideEncoderWrapper(inner)
+
+
+class TwoDMambaWrapper(nn.Module):
+    """Slide-encoder wrapper for 2DMambaMIL.
+
+    Unlike ``_SlideEncoderWrapper``, this passes ``coords`` through to the
+    inner network — the whole point of 2DMambaMIL is that the 2D-selective SSM
+    consumes coords as positional context, not just features.
+    """
+
+    def __init__(self, inner: nn.Module) -> None:
+        super().__init__()
+        self.inner = inner
+        self.embedding_dim: int = inner.embedding_dim
+        self.precision: torch.dtype = torch.float32
+
+    def forward(self, batch: dict[str, Any], device: str | torch.device = "cuda") -> torch.Tensor:
+        feats = batch["features"].to(device)
+        coords = batch["coords"].to(device)
+        # Patho-Bench collate: (B, S, N, D) and (B, S, N, 2). Flatten to (B*S, N, D/2).
+        if feats.dim() == 4:
+            B, S, N, D = feats.shape
+            feats = feats.reshape(B * S, N, D)
+            coords = coords.reshape(B * S, N, 2)
+        # 2DMambaMIL forward is single-slide; loop over batch if needed.
+        outs = [self.inner(feats[i], coords[i]) for i in range(feats.shape[0])]
+        return torch.cat(outs, dim=0)
+
+
+def _build_twodmamba_baseline(**kwargs: Any) -> TwoDMambaWrapper:
+    """Build 2DMambaMIL baseline. Kwargs follow ``configs/backbones/twodmamba_base.yaml``."""
+    from hilbert_wsi.models.twodmamba import TwoDMambaMILBackbone
+    kwargs.pop("pretrained", None)
+    kwargs.pop("freeze", None)
+    input_dim = kwargs.pop("input_dim", None)
+    if input_dim is None:
+        raise ValueError("twodmamba_baseline needs `input_dim` (patch feature dim).")
+    bb_kwargs = kwargs.pop("backbone_kwargs", None) or {}
+    merged = {**kwargs, **bb_kwargs}
+    inner = TwoDMambaMILBackbone(input_dim=input_dim, **merged)
+    return TwoDMambaWrapper(inner)
+
+
 def _parse_name(name: str) -> tuple[str, str] | None:
     """Return (ordering, backbone) if ``name`` matches ``hilbertwsi_<ord>_<bb>``."""
     if not name.startswith(f"{PREFIX}_"):
@@ -212,6 +306,12 @@ def register_hilbert_encoders() -> None:
             return _build(model_name, **kwargs)
         if model_name == "abmil_baseline":
             return _build_abmil_baseline(**kwargs)
+        if model_name == "transmil_baseline":
+            return _build_transmil_baseline(**kwargs)
+        if model_name == "mambamil_baseline":
+            return _build_mambamil_baseline(**kwargs)
+        if model_name == "twodmamba_baseline":
+            return _build_twodmamba_baseline(**kwargs)
         return original(model_name, *args, **kwargs)
 
     _load.encoder_factory = factory
