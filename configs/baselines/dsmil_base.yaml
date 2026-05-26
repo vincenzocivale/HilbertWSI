@@ -1,0 +1,11 @@
+# DSMIL baseline (Li et al., CVPR 2021) — dual-stream critical-instance attention.
+# Critical (max-scoring) instance acts as bag-level query; attention weights are
+# inner products between all instances and that query.
+#
+# Capacity: ~1.1M params (input_dim=1536, d_model=512).
+# Original paper used SimCLR self-supervised features; we use UNI2-h (1536-dim).
+# Instance-level stream classification loss omitted; Patho-Bench provides classifier.
+input_dim: 1536
+d_model: 512
+dropout: 0.0
+act: relu

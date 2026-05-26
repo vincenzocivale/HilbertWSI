@@ -18,6 +18,7 @@ import torch
 from torch import nn
 
 from hilbert_wsi.encoder import HilbertSequenceEncoder
+from hilbert_wsi.encoder_2d import TileCoordEncoder
 from hilbert_wsi.models import available_backbones
 from hilbert_wsi.ordering import available_orderings
 
@@ -165,8 +166,8 @@ class _SlideEncoderWrapper(nn.Module):
 
 
 def _build_transmil_baseline(**kwargs: Any) -> _SlideEncoderWrapper:
-    """Build TransMIL baseline. Kwargs follow ``configs/backbones/transmil_base.yaml``."""
-    from hilbert_wsi.models.transmil import TransMILBackbone
+    """Build TransMIL baseline. Kwargs follow ``configs/baselines/transmil_base.yaml``."""
+    from hilbert_wsi.models.baselines.transmil import TransMILBackbone
     # Patho-Bench passes ``pretrained`` / ``freeze`` for every encoder — drop them.
     kwargs.pop("pretrained", None)
     kwargs.pop("freeze", None)
@@ -181,8 +182,8 @@ def _build_transmil_baseline(**kwargs: Any) -> _SlideEncoderWrapper:
 
 
 def _build_mambamil_baseline(**kwargs: Any) -> _SlideEncoderWrapper:
-    """Build MambaMIL baseline. Kwargs follow ``configs/backbones/mambamil_base.yaml``."""
-    from hilbert_wsi.models.mambamil import MambaMILBackbone
+    """Build MambaMIL baseline. Kwargs follow ``configs/baselines/mambamil_base.yaml``."""
+    from hilbert_wsi.models.baselines.mambamil import MambaMILBackbone
     kwargs.pop("pretrained", None)
     kwargs.pop("freeze", None)
     input_dim = kwargs.pop("input_dim", None)
@@ -222,8 +223,8 @@ class TwoDMambaWrapper(nn.Module):
 
 
 def _build_twodmamba_baseline(**kwargs: Any) -> TwoDMambaWrapper:
-    """Build 2DMambaMIL baseline. Kwargs follow ``configs/backbones/twodmamba_base.yaml``."""
-    from hilbert_wsi.models.twodmamba import TwoDMambaMILBackbone
+    """Build 2DMambaMIL baseline. Kwargs follow ``configs/baselines/twodmamba_base.yaml``."""
+    from hilbert_wsi.models.baselines.twodmamba import TwoDMambaMILBackbone
     kwargs.pop("pretrained", None)
     kwargs.pop("freeze", None)
     input_dim = kwargs.pop("input_dim", None)
@@ -235,8 +236,53 @@ def _build_twodmamba_baseline(**kwargs: Any) -> TwoDMambaWrapper:
     return TwoDMambaWrapper(inner)
 
 
+def _build_clam_sb_baseline(**kwargs: Any) -> _SlideEncoderWrapper:
+    """Build CLAM-SB baseline. Kwargs follow ``configs/baselines/clam_sb_base.yaml``."""
+    from hilbert_wsi.models.baselines.clam import CLAMSBBackbone
+    kwargs.pop("pretrained", None)
+    kwargs.pop("freeze", None)
+    input_dim = kwargs.pop("input_dim", None)
+    if input_dim is None:
+        raise ValueError("clam_sb_baseline needs `input_dim` (patch feature dim).")
+    bb_kwargs = kwargs.pop("backbone_kwargs", None) or {}
+    merged = {**kwargs, **bb_kwargs}
+    inner = CLAMSBBackbone(input_dim=input_dim, **merged)
+    return _SlideEncoderWrapper(inner)
+
+
+def _build_clam_mb_baseline(**kwargs: Any) -> _SlideEncoderWrapper:
+    """Build CLAM-MB baseline. Kwargs follow ``configs/baselines/clam_mb_base.yaml``."""
+    from hilbert_wsi.models.baselines.clam import CLAMMBBackbone
+    kwargs.pop("pretrained", None)
+    kwargs.pop("freeze", None)
+    input_dim = kwargs.pop("input_dim", None)
+    if input_dim is None:
+        raise ValueError("clam_mb_baseline needs `input_dim` (patch feature dim).")
+    bb_kwargs = kwargs.pop("backbone_kwargs", None) or {}
+    merged = {**kwargs, **bb_kwargs}
+    inner = CLAMMBBackbone(input_dim=input_dim, **merged)
+    return _SlideEncoderWrapper(inner)
+
+
+def _build_dsmil_baseline(**kwargs: Any) -> _SlideEncoderWrapper:
+    """Build DSMIL baseline. Kwargs follow ``configs/baselines/dsmil_base.yaml``."""
+    from hilbert_wsi.models.baselines.dsmil import DSMILBackbone
+    kwargs.pop("pretrained", None)
+    kwargs.pop("freeze", None)
+    input_dim = kwargs.pop("input_dim", None)
+    if input_dim is None:
+        raise ValueError("dsmil_baseline needs `input_dim` (patch feature dim).")
+    bb_kwargs = kwargs.pop("backbone_kwargs", None) or {}
+    merged = {**kwargs, **bb_kwargs}
+    inner = DSMILBackbone(input_dim=input_dim, **merged)
+    return _SlideEncoderWrapper(inner)
+
+
 def _parse_name(name: str) -> tuple[str, str] | None:
-    """Return (ordering, backbone) if ``name`` matches ``hilbertwsi_<ord>_<bb>``."""
+    """Return (ordering, backbone) if ``name`` matches ``hilbertwsi_<ord>_<bb>``.
+
+    Returns ("2dpe", backbone) for ``hilbertwsi_2dpe_<bb>`` (2D PE encoder).
+    """
     if not name.startswith(f"{PREFIX}_"):
         return None
     parts = name[len(PREFIX) + 1 :].split("_")
@@ -244,9 +290,55 @@ def _parse_name(name: str) -> tuple[str, str] | None:
         return None
     backbone = parts[-1]
     ordering = "_".join(parts[:-1])
-    if ordering not in available_orderings() or backbone not in available_backbones():
+    if backbone not in available_backbones():
+        return None
+    if ordering == "2dpe":
+        return "2dpe", backbone
+    if ordering not in available_orderings():
         return None
     return ordering, backbone
+
+
+def _build_2dpe(name: str, **kwargs: Any) -> "_TileCoordEncoderWrapper":
+    """Build a TileCoordEncoder (2D PE variant) from a hilbertwsi_2dpe_<bb> name."""
+    parts = name[len(PREFIX) + 1 :].split("_")  # ["2dpe", backbone]
+    backbone = parts[-1]
+    input_dim = kwargs.pop("input_dim", None)
+    if input_dim is None:
+        raise ValueError(
+            "hilbertwsi_2dpe encoders need `input_dim`. "
+            "Pass it via the Patho-Bench `model_kwargs` config."
+        )
+    embedding_dim = kwargs.pop("embedding_dim", 512)
+    backbone_kwargs = kwargs.pop("backbone_kwargs", None)
+    kwargs.pop("freeze", None)
+    kwargs.pop("pretrained", None)
+    kwargs.pop("ordering_kwargs", None)
+    encoder = TileCoordEncoder(
+        input_dim=input_dim,
+        backbone=backbone,
+        embedding_dim=embedding_dim,
+        backbone_kwargs=backbone_kwargs,
+    )
+    return _TileCoordEncoderWrapper(encoder)
+
+
+class _TileCoordEncoderWrapper(nn.Module):
+    """Adapt TileCoordEncoder to the Patho-Bench slide-encoder contract.
+
+    TileCoordEncoder.forward expects (sample, device) which is already the
+    Trident contract — this wrapper is a thin identity that exposes the
+    standard embedding_dim / precision attributes.
+    """
+
+    def __init__(self, inner: TileCoordEncoder) -> None:
+        super().__init__()
+        self.inner = inner
+        self.embedding_dim: int = inner.embedding_dim
+        self.precision: torch.dtype = torch.float32
+
+    def forward(self, batch: dict, device: str | torch.device = "cuda") -> torch.Tensor:
+        return self.inner(batch, device=device)
 
 
 def _build(name: str, **kwargs: Any) -> HilbertSequenceEncoder:
@@ -302,7 +394,11 @@ def register_hilbert_encoders() -> None:
     original = _load.encoder_factory
 
     def factory(model_name: str, *args: Any, **kwargs: Any):
-        if _parse_name(model_name) is not None:
+        parsed = _parse_name(model_name)
+        if parsed is not None:
+            ordering, backbone = parsed
+            if ordering == "2dpe":
+                return _build_2dpe(model_name, **kwargs)
             return _build(model_name, **kwargs)
         if model_name == "abmil_baseline":
             return _build_abmil_baseline(**kwargs)
@@ -312,6 +408,12 @@ def register_hilbert_encoders() -> None:
             return _build_mambamil_baseline(**kwargs)
         if model_name == "twodmamba_baseline":
             return _build_twodmamba_baseline(**kwargs)
+        if model_name == "clam_sb_baseline":
+            return _build_clam_sb_baseline(**kwargs)
+        if model_name == "clam_mb_baseline":
+            return _build_clam_mb_baseline(**kwargs)
+        if model_name == "dsmil_baseline":
+            return _build_dsmil_baseline(**kwargs)
         return original(model_name, *args, **kwargs)
 
     _load.encoder_factory = factory

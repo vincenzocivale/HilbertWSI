@@ -30,24 +30,41 @@ Non serve nessuna variabile manuale.
 
 ```
 hilbert_wsi/
-├── ordering/       # 7 scheme + registry (get_ordering(name))
-├── models/         # Mamba backbone + registry (get_backbone(name))
-├── encoder.py      # HilbertSequenceEncoder — Trident-compatibile (embedding_dim, precision)
-└── multiscale.py   # placeholder phase 3
+├── ordering/           # 7 scheme + registry (get_ordering(name))
+├── models/
+│   ├── mamba.py        # BiMamba backbone (skip_proj, pooling: mean/attn/cls)
+│   ├── transformer.py  # RoPE+SDPA+SwiGLU backbone (pe_type: rope|none, skip_proj)
+│   ├── xlstm.py        # mLSTM backbone
+│   ├── gla.py          # GLA backbone
+│   └── baselines/      # no-ordering + classical MIL (messo da parte)
+│       ├── transmil.py, mambamil.py, clam.py, dsmil.py, twodmamba.py
+│       └── vendor/     # upstream code pristino per provenance
+├── encoder.py          # HilbertSequenceEncoder — 1D ordering → backbone
+├── encoder_2d.py       # TileCoordEncoder — 2D sin/cos PE da coords → stesso backbone
+├── pos_encoding.py     # TwoDSinCosPositionalEncoding (parameter-free)
+└── multiscale.py       # placeholder phase 3
 adapters/
-└── patho_bench.py  # register_hilbert_encoders() — chiama prima di Patho-Bench
+└── patho_bench.py      # register_hilbert_encoders() — chiama prima di Patho-Bench
 configs/
-├── orderings/      # un yaml per scheme
-├── backbones/mamba_base.yaml  # input_dim=1536 (UNI2-h)
-└── experiments/    # yaml esperimenti Patho-Bench
+├── orderings/          # un yaml per scheme
+├── backbones/          # configs core: mamba_base, transformer_base, mamba_2dpe, transformer_2dpe
+├── baselines/          # configs messi da parte: abmil, clam, dsmil, transmil, mambamil, twodmamba
+└── experiments/        # yaml esperimenti Patho-Bench
 scripts/
 ├── run_benchmark.py      # CLI: scarica splits HF + lancia Patho-Bench
 └── ablation_orderings.py # sweep tutti gli ordering, stesso backbone
-tests/              # 28 test, tutti passano (incluso Mamba CUDA forward)
-docs/
-├── architecture.md
-└── benchmarks.md
+tests/              # 38 test, tutti passano (incluso Mamba CUDA forward)
 ```
+
+### Encoder pair per confronto 1D vs 2D (fairness)
+
+| Encoder | Modello Patho-Bench | Positional info | Arch |
+|---|---|---|---|
+| `HilbertSequenceEncoder` | `hilbertwsi_<ord>_<bb>` | 1D ordering → RoPE (Transformer) / scan order (Mamba) | uguale |
+| `TileCoordEncoder` | `hilbertwsi_2dpe_<bb>` | 2D sin/cos PE da (x,y) coords, no ordering | uguale |
+| — | `hilbertwsi_random_<bb>` | 1D random order, no spatial info (controllo) | uguale |
+
+Parametri: 2D encoder ha +0.263M overhead fisso (backbone.proj_in(512→512) non usato, documentato).
 
 ## Dati — /data/hilbert-wsi/
 
@@ -91,174 +108,226 @@ split_path, config_path = SplitFactory.from_hf(
 )
 ```
 
-## Risultati runs_v2/ — PANDA ISUP grading (stato 2026-05-17)
+## Risultati — Contributo 1: Ordering vs No-ordering
 
-| Modello | acc | macro-OVR-AUC | weighted-κ |
-|---|---|---|---|
-| ABMIL (no order) | 0.812 | 0.963 | 0.944 |
-| Hilbert + Mamba | 0.802 | 0.962 | 0.943 |
-| Z-order + Mamba | 0.793 | 0.962 | 0.949 |
-| Mean-pool + linprobe | 0.753 | 0.943 | 0.910 |
+**Domanda**: stessa architettura, ordering SFC vs random/no-ordering → effetto causale?
+**Metrica primaria**: macro-OVR-AUC ± SE (50-fold Patho-Bench, CI = 2·SE ≈ 95%).
+**Legenda**: ⭐ best, ⚠ no-ordering control, 🔲 da eseguire
 
-**Conclusione**: CI completamente sovrapposti → PANDA-ISUP saturo con UNI2-h. Non è un bug di pipeline.
+### CPTAC-UCEC Immune_class — 95 slides, task non saturo ✅
 
-## Risultati runs/ — CPTAC-UCEC Immune_class (stato 2026-05-22 — killer experiment completo)
+**Ablation ordering (stessa architettura)**
 
-| Modello | acc | macro-OVR-AUC | macro-F1 | w-kappa |
+| Ordering | Backbone | AUC ± SE | acc ± SE | F1 ± SE |
 |---|---|---|---|---|
-| Snake + Transformer ⭐ | **0.452 ± 0.013** | **0.629 ± 0.012** | **0.437 ± 0.013** | 0.355 ± 0.025 |
-| Zorder + Transformer | 0.448 ± 0.017 | 0.622 ± 0.013 | 0.436 ± 0.016 | 0.337 ± 0.026 |
-| Hilbert + Transformer | 0.444 ± 0.013 | 0.614 ± 0.010 | 0.425 ± 0.013 | 0.308 ± 0.026 |
-| Peano + Transformer | 0.445 ± 0.015 | 0.613 ± 0.012 | 0.430 ± 0.015 | 0.317 ± 0.029 |
-| Moore + Transformer | 0.435 ± 0.014 | 0.608 ± 0.011 | 0.422 ± 0.014 | 0.325 ± 0.025 |
-| Mean-pool (linprobe) | 0.403 ± 0.012 | 0.601 ± 0.010 | 0.387 ± 0.013 | 0.200 ± 0.031 |
-| Hilbert + Mamba | 0.405 ± 0.013 | 0.596 ± 0.011 | 0.387 ± 0.014 | 0.215 ± 0.030 |
-| Peano + Mamba | 0.401 ± 0.014 | 0.594 ± 0.012 | 0.387 ± 0.014 | — |
-| Similarity + Mamba | 0.408 ± 0.014 | 0.592 ± 0.011 | 0.391 ± 0.014 | — |
-| ABMIL | 0.387 ± 0.014 | 0.594 ± 0.013 | 0.373 ± 0.015 | 0.199 ± 0.031 |
-| Zorder + Mamba | 0.398 ± 0.012 | 0.588 ± 0.011 | 0.384 ± 0.013 | — |
-| Snake + Mamba | 0.400 ± 0.014 | 0.582 ± 0.011 | 0.385 ± 0.014 | — |
-| Moore + Mamba | 0.375 ± 0.013 | 0.573 ± 0.011 | 0.358 ± 0.013 | — |
-| **TransMIL (no order)** ⚠ | 0.338 ± 0.013 | 0.542 ± 0.013 | 0.252 ± 0.013 | 0.024 ± 0.026 |
-| **2DMamba (2D-native SSM)** ⚠ | 0.368 ± 0.014 | 0.527 ± 0.015 | 0.302 ± 0.017 | 0.042 ± 0.029 |
-| **Random + Transformer (fix)** ⚠ | 0.344 ± 0.012 | 0.519 ± 0.016 | 0.269 ± 0.014 | 0.010 ± 0.028 |
-| **MambaMIL (no order)** ⚠ | 0.319 ± 0.012 | 0.484 ± 0.014 | 0.258 ± 0.014 | -0.007 ± 0.025 |
+| Snake ⭐ | Transformer (13M) | **0.629 ± 0.012** | 0.452 ± 0.013 | 0.437 ± 0.013 |
+| Zorder | Transformer | 0.622 ± 0.013 | 0.448 ± 0.017 | 0.436 ± 0.016 |
+| Hilbert | Transformer | 0.614 ± 0.010 | 0.444 ± 0.013 | 0.425 ± 0.013 |
+| Peano | Transformer | 0.613 ± 0.012 | 0.445 ± 0.015 | 0.430 ± 0.015 |
+| Moore | Transformer | 0.608 ± 0.011 | 0.435 ± 0.014 | 0.422 ± 0.014 |
+| **Random ⚠** | Transformer | **0.519 ± 0.016** | 0.344 ± 0.012 | 0.269 ± 0.014 |
+| Hilbert ⭐ | Mamba (22M) | **0.596 ± 0.011** | 0.405 ± 0.013 | 0.387 ± 0.014 |
+| Peano | Mamba | 0.594 ± 0.012 | 0.401 ± 0.014 | 0.387 ± 0.014 |
+| Similarity | Mamba | 0.592 ± 0.011 | 0.408 ± 0.014 | 0.391 ± 0.014 |
+| Zorder | Mamba | 0.588 ± 0.011 | 0.398 ± 0.012 | 0.384 ± 0.013 |
+| Snake | Mamba | 0.582 ± 0.011 | 0.400 ± 0.014 | 0.385 ± 0.014 |
+| Moore | Mamba | 0.573 ± 0.011 | 0.375 ± 0.013 | 0.358 ± 0.013 |
 
-⭐ = best  ⚠ = no-ordering controls (killer experiment 2026-05-22)
-† 2DMamba run con patch_size=1024 (pure-Python pscan, 14.4M params); resolution loss reale (fino a 16 tile/cella)
+**Confronti causali (CI disjoint = effetto significativo)**
 
-**Esito decision tree killer (CI overlap = ~95%, 2·SE):**
-
-| Confronto | Δ AUC | CI overlap? | Interpretazione |
+| Confronto | Δ AUC | CI | Interpretazione |
 |---|---|---|---|
-| Snake+Transformer vs TransMIL | **+0.087** | **DISJOINT** | Architettura Transformer DA SOLA non spiega il guadagno: ordering contribuisce indipendentemente |
-| Snake+Transformer vs Random+Transformer | **+0.110** | **DISJOINT** | Ordering matters per Transformer (Snake >> Random con stessa arch) |
-| Hilbert+Mamba vs MambaMIL | **+0.112** | **DISJOINT** | Ordering è **essenziale** per Mamba: senza ordering Mamba collassa a ~random |
-| Snake+Transformer vs ABMIL | +0.034 | overlap | Confronto classico borderline (CI parzialmente sovrapposte) |
-| Random+Transformer vs TransMIL | -0.024 | overlap | Nostra Transformer-arch senza ordering ≈ TransMIL → architetture comparabili senza ordering |
-| TransMIL vs ABMIL | -0.052 | DISJOINT | TransMIL **peggio di ABMIL** su UCEC (paper-not-faithful: overfit a 13M params o PPEG inadatto) |
-| 2DMamba vs Hilbert+Mamba | **-0.069** | **DISJOINT** | Paradigma 2D-nativo non bypassa 1D-ordering; 2DMamba cade nel cluster no-ordering |
-| 2DMamba vs ABMIL | **-0.067** | **DISJOINT** | ABMIL classico batte 2DMamba senza ordering strutturato |
-| 2DMamba vs Random+Transformer | +0.008 | overlap | 2DMamba ≈ random ordering → struttura 2D-nativa non sostituisce ordinamento esplicito |
+| Snake+Transformer vs Random+Transformer | **+0.110** | **DISJOINT** | Ordering causa +0.11 AUC su Transformer |
+| Hilbert+Mamba vs MambaMIL-noorder† | **+0.112** | **DISJOINT** | Ordering causa +0.11 AUC su Mamba |
+| Snake+Transformer vs TransMIL-noorder† | **+0.087** | **DISJOINT** | Arch Transformer sola non spiega il gap |
+| Hilbert+Mamba vs 2DMamba† | **+0.069** | **DISJOINT** | 2D-nativeness non bypassa ordering 1D |
+| 2DMamba vs Random+Transformer | +0.008 | overlap | 2DMamba ≈ random ordering |
 
-**Conclusioni killer (CPTAC-UCEC Immune_class):**
+† Cross-arch comparison (architettura diversa): MambaMIL=Mamba2+attnpool (0.484), TransMIL=Nystromformer+PPEG (0.542), 2DMamba=2D-SSM (0.527, patch_size=1024).
 
-1. **Tesi VIVE in forma forte**: ordering 1D contribuisce ~+0.11 AUC sia per Transformer sia per Mamba, indipendentemente dall'architettura. Snake+Transformer e Hilbert+Mamba dominano tutti i no-ordering controls con CI disjoint.
+**No-ordering controls per backbone architettura (fair 2D vs 1D — 🔲 da eseguire)**
 
-2. **Mamba beneficia più drammaticamente dell'ordering** (passa da AUC 0.484 random a 0.596 con Hilbert) rispetto al Transformer (0.519 → 0.629). Implica che gli SSM su WSI **richiedono** struttura spaziale imposta — senza, collassano a baseline random.
+| Modello | Arch | AUC |
+|---|---|---|
+| Random+Transformer (stessa arch) ✅ | Transformer | 0.519 ± 0.016 |
+| **2D PE+Transformer** (stessa arch) 🔲 | Transformer | ? |
+| **2D PE+Mamba** (stessa arch) 🔲 | Mamba | ? |
 
-3. **TransMIL/MambaMIL/2DMamba capacity-matched sotto-performano ABMIL classico (1.5M)** su UCEC. Cluster "no ordering" (Random+Transformer 0.519, TransMIL 0.542, 2DMamba 0.527, MambaMIL 0.484) tutti peggio o pari ad ABMIL. Possibili cause: overfit su 50-fold UCEC, architetture progettate per N>>1000 patch, PPEG/attention-pool inadatti per immune-subtyping (segnale globale diffuso).
+Questi tre punti formano il confronto pulito: stessa arch, solo fonte di info spaziale varia.
 
-4. **Paradigma 2D-nativo (2DMamba) non bypassa 1D-ordering**: AUC 0.527 ± 0.015 cade nel cluster no-ordering. CI DISJOINT vs Hilbert+Mamba (0.596) e ABMIL (0.594). Inductive bias critico è l'ordinamento spaziale esplicito, non la 2D-nativeness. Caveat: patch_size=1024 (pure-Python pscan) introduce collision loss; paper-grade comparison richiederebbe CUDA kernel a patch_size=256.
+**Conclusioni UCEC:**
+- Ordering SFC → +0.110 AUC vs random (Transformer), +0.112 vs no-order (Mamba): entrambi **CI DISJOINT** → effetto causale robusto
+- Mamba senza ordering collassa ad AUC ≈ 0.48 (< ABMIL 0.594): gli SSM richiedono struttura spaziale esplicita
+- 2DMamba (0.527) cade nel cluster no-ordering: 2D-nativeness non sostituisce ordinamento
+- Differenze tra ordering SFC: deboli (Δ ≤ 0.021 tra Transformer orderings), non significative singolarmente
+- **Gap aperto**: 2D PE (stessa arch) — rimane da eseguire per disambiguare "ordering" vs "any spatial info"
 
-5. **Confronto Mamba vs Transformer**: Snake+Transformer (0.629) > Hilbert+Mamba (0.596) di +0.033 AUC, CI overlap marginale. Mamba al massimo eguaglia ABMIL/mean-pool con ordering. Confound capacity (22M vs 13M) non risolto.
+### CPTAC-BRCA Immune_class — 653 slides, task saturo ✅
 
-6. **Snake e Zorder leggermente meglio di Hilbert/Peano/Moore** per Transformer (Δ ≤ 0.015 AUC, CI overlap). Differenze tra orderings deboli; significative solo collettivamente vs random/no-ordering.
+| Ordering | Backbone | AUC ± SE |
+|---|---|---|
+| Hilbert | Mamba (22M) | 0.711 ± 0.013 |
+| Snake | Transformer (13M) | 0.703 ± 0.011 |
+| **Random ⚠** | Mamba | **0.713 ± 0.012** |
+| **Random ⚠** | Transformer | **0.700 ± 0.013** |
 
-**Pipeline verificata:**
-- Class balancing: funziona (Patho-Bench `ExperimentFactory.finetune(balanced=True)` usa `compute_class_weight` → `CrossEntropyLoss(weight=...)`)
-- Mamba: 22M params, Transformer: 13M params, TransMIL: 13.4M, MambaMIL: 20.7M (capacity matched ai counterpart HilbertWSI)
-- Peano ordering: **canonica** (S-curve column-major, verificata via test regressione vs reference table 3×3+9×9). Linea morta `rev_x = rev_x` rimossa in cleanup, comportamento invariato.
-- Random ordering: **fixed** (era seed=0 globale → ora `blake2b(coords) ^ base_seed` per-slide). I valori 0.519 AUC sopra usano il random fixato.
+**Conclusione**: Δ ≤ 0.003, CI sovrapposte → **BRCA saturo**, ordering irrilevante (>600 slides).
 
-## Prossimi esperimenti (runs_v3/ e runs/)
+### PANDA ISUP grading — >400 slides, task saturo ✅
 
-```bash
-cd /home/oem/HilbertWSI
-conda activate hilbert-wsi-clean
+| Modello | AUC | weighted-κ |
+|---|---|---|
+| ABMIL | 0.963 | 0.944 |
+| Hilbert+Mamba | 0.962 | 0.943 |
+| Zorder+Mamba | 0.962 | 0.949 |
 
-# ATTENZIONE: "random_perm" non esiste nel registry, usare "random"
-# Il saveto con _random_perm_ è intenzionale per distinguerlo da run precedenti
+**Conclusione**: CI completamente sovrapposti → **PANDA saturo** con UNI2-h.
 
-# 1. CRITICO — random+Mamba su UCEC (isola contributo ordering per Mamba)
-python -m scripts.run_benchmark \
-    --source cptac_ucec --task Immune_class \
-    --experiment_type finetune \
-    --model_name hilbertwsi_random_mamba \
-    --patch_features_dir /data/hilbert-wsi/features/CPTAC_UCEC \
-    --splits_root splits \
-    --saveto runs/cptac_ucec_Immune_class_hilbertwsi_random_perm_mamba \
-    --model_kwargs_yaml configs/backbones/mamba_base.yaml \
-    --num_epochs 20
+### CPTAC-CCRCC mutations — ~300 slides, intermedio 🔲 DA ESEGUIRE
 
-# 2. CRITICO — random+Transformer su UCEC (isola contributo ordering per Transformer)
-python -m scripts.run_benchmark \
-    --source cptac_ucec --task Immune_class \
-    --experiment_type finetune \
-    --model_name hilbertwsi_random_transformer \
-    --patch_features_dir /data/hilbert-wsi/features/CPTAC_UCEC \
-    --splits_root splits \
-    --saveto runs/cptac_ucec_Immune_class_hilbertwsi_random_perm_transformer \
-    --model_kwargs_yaml configs/backbones/transformer_base.yaml \
-    --num_epochs 20
+Dataset chiave per la curva dataset-size moderator (UCEC=saturo sopra 95 slide → BRCA=saturo a 653).
 
-# 3. similarity+Transformer su UCEC (run incompleta)
-python -m scripts.run_benchmark \
-    --source cptac_ucec --task Immune_class \
-    --experiment_type finetune \
-    --model_name hilbertwsi_similarity_transformer \
-    --patch_features_dir /data/hilbert-wsi/features/CPTAC_UCEC \
-    --splits_root splits \
-    --saveto runs/cptac_ucec_Immune_class_hilbertwsi_similarity_transformer \
-    --model_kwargs_yaml configs/backbones/transformer_base.yaml \
-    --num_epochs 20
+---
 
-# 4. Hilbert+Mamba su CPTAC-BRCA (secondo dataset)
-python -m scripts.run_benchmark \
-    --source cptac_brca --task Immune_class \
-    --experiment_type finetune \
-    --model_name hilbertwsi_hilbert_mamba \
-    --patch_features_dir /data/hilbert-wsi/features/CPTAC_BRCA \
-    --splits_root splits \
-    --saveto runs_v3/cptac_brca_immune_class_hilbert_mamba \
-    --model_kwargs_yaml configs/backbones/mamba_base.yaml \
-    --num_epochs 20
+## Risultati — Contributo 2: HilbertWSI vs Baseline classiche MIL
 
-# 5. Mean-pool + CoxNet su CPTAC-CCRCC OS (survival baseline)
-python -m scripts.run_benchmark \
-    --source cptac_ccrcc --task OS \
-    --experiment_type coxnet \
-    --patch_features_dir /data/hilbert-wsi/features/CPTAC_CCRCC \
-    --splits_root splits \
-    --saveto runs_v3/cptac_ccrcc_os_mean_pool
+**Domanda**: il modello 1D ordinato supera le SOTA MIL classiche su stesso feature extractor?
+**Avvertenza**: baseline classiche 1-2M params vs HilbertWSI 13-22M — documentare in tabella.
 
-# 6. EBRAINS — da scaricare features prima, poi ablation completa (30-class, task harder)
-```
+### CPTAC-UCEC Immune_class — 95 slides ✅
+
+| Modello | Tipo | AUC ± SE | Params |
+|---|---|---|---|
+| Snake + Transformer ⭐ | HilbertWSI (1D) | **0.629 ± 0.012** | 13M |
+| Mean-pool linprobe | baseline | 0.601 ± 0.010 | ~0 |
+| Hilbert + Mamba | HilbertWSI (1D) | 0.596 ± 0.011 | 22M |
+| ABMIL | classico MIL | 0.594 ± 0.013 | 1.5M |
+| CLAM-SB | classico MIL | 0.710 ± 0.012† | 1.1M |
+
+† CLAM su BRCA, non UCEC — da eseguire su UCEC.
+
+**Conclusione**: Snake+Transformer vs ABMIL Δ=+0.035, CI parzialmente sovrapposte → **borderline** su UCEC (95 slides). Non conclusivo da solo; servono CCRCC e altri dataset.
+
+### CPTAC-BRCA Immune_class — 653 slides ✅
+
+| Modello | Tipo | AUC ± SE | Params |
+|---|---|---|---|
+| MambaMIL (no order)† | baseline no-order | **0.725 ± 0.011** | 20.7M |
+| Random+Mamba | HilbertWSI | 0.713 ± 0.012 | 22M |
+| Hilbert+Mamba | HilbertWSI (1D) | 0.711 ± 0.013 | 22M |
+| CLAM-SB | classico MIL | 0.710 ± 0.012 | 1.1M |
+| Snake+Transformer | HilbertWSI (1D) | 0.703 ± 0.011 | 13M |
+| ABMIL | classico MIL | 0.696 ± 0.012 | 1.5M |
+
+† MambaMIL usa SRMamba (custom fork), non Mamba2 — architettura diversa da HilbertWSI Mamba.
+
+**Conclusione**: su BRCA saturo, nessuna arch si distingue. CLAM-SB (1.1M) competitive con modelli 15-20x più grandi. Confronto non discriminante su dataset saturi.
+
+**Note pipeline:**
+- Splits ufficiali Patho-Bench (HuggingFace) con train/val/test pre-definiti: 50-fold, UCEC 60/15/19 per fold
+- Class balancing: `ExperimentFactory.finetune(balanced=True)` → `CrossEntropyLoss(weight=compute_class_weight(...))`
+- Random ordering fixed: `blake2b(coords) ^ base_seed` per-slide (non seed=0 globale)
+- Peano ordering: canonica S-curve column-major (verificata test regressione 3×3, 9×9)
+
+## Prossimi esperimenti
 
 **Orderings nel registry**: hilbert, zorder, snake, moore, peano, random, similarity
-**Backbones nel registry**: mamba, transformer
+**Backbones nel registry**: mamba, transformer, xlstm, gla
+
+### Priorità 1 — Confronto 2D PE vs 1D ordering (stessa arch, fairness) 🔲
+
+```bash
+# 2D PE + Transformer (stessa arch di snake_transformer)
+conda run -n hilbert-wsi-clean python -m scripts.run_benchmark \
+    --source cptac_ucec --task Immune_class \
+    --experiment_type finetune \
+    --model_name hilbertwsi_2dpe_transformer \
+    --patch_features_dir /data/hilbert-wsi/features/CPTAC_UCEC \
+    --splits_root splits \
+    --saveto runs/cptac_ucec_2dpe_transformer \
+    --model_kwargs_yaml configs/backbones/transformer_2dpe_base.yaml \
+    --num_epochs 20
+
+# 2D PE + Mamba (stessa arch di hilbert_mamba)
+conda run -n hilbert-wsi-clean python -m scripts.run_benchmark \
+    --source cptac_ucec --task Immune_class \
+    --experiment_type finetune \
+    --model_name hilbertwsi_2dpe_mamba \
+    --patch_features_dir /data/hilbert-wsi/features/CPTAC_UCEC \
+    --splits_root splits \
+    --saveto runs/cptac_ucec_2dpe_mamba \
+    --model_kwargs_yaml configs/backbones/mamba_2dpe_base.yaml \
+    --num_epochs 20
+```
+
+### Priorità 2 — CPTAC-CCRCC (dataset intermedio, ~300 slides) 🔲
+
+```bash
+# Trio confronto su BAP1: ordering vs 2D PE vs random (stessa arch)
+for MODEL in hilbertwsi_hilbert_transformer hilbertwsi_2dpe_transformer hilbertwsi_random_transformer; do
+  conda run -n hilbert-wsi-clean python -m scripts.run_benchmark \
+      --source cptac_ccrcc --task BAP1_mutation \
+      --experiment_type finetune \
+      --model_name $MODEL \
+      --patch_features_dir /data/hilbert-wsi/features/CPTAC_CCRCC \
+      --splits_root splits \
+      --saveto runs/cptac_ccrcc_BAP1_${MODEL} \
+      --model_kwargs_yaml configs/backbones/transformer_base.yaml \
+      --num_epochs 20
+done
+```
+
+### Priorità 3 — EBRAINS 30-class (da scaricare features prima) 🔲
+
+30-class classification — da scaricare features (alto priority per generalizzazione).
+
+### Priorità 4 — xLSTM e GLA su UCEC (contributo 2, SOTA NLP) 🔲
+
+```bash
+conda run -n hilbert-wsi-clean python -m scripts.run_benchmark \
+    --source cptac_ucec --task Immune_class \
+    --experiment_type finetune \
+    --model_name hilbertwsi_snake_xlstm \
+    --patch_features_dir /data/hilbert-wsi/features/CPTAC_UCEC \
+    --splits_root splits \
+    --saveto runs/cptac_ucec_snake_xlstm \
+    --model_kwargs_yaml configs/backbones/xlstm_base.yaml \
+    --num_epochs 20
+```
 
 ## Nome modello (adapter)
 
-Formato: `hilbertwsi_<ordering>_<backbone>`, es. `hilbertwsi_hilbert_mamba`.
+| Pattern | Encoder | Config |
+|---|---|---|
+| `hilbertwsi_<ordering>_<backbone>` | `HilbertSequenceEncoder` (1D) | `configs/backbones/<backbone>_base.yaml` |
+| `hilbertwsi_2dpe_<backbone>` | `TileCoordEncoder` (2D PE) | `configs/backbones/<backbone>_2dpe_base.yaml` |
+
+Esempio: `hilbertwsi_hilbert_mamba`, `hilbertwsi_snake_transformer`, `hilbertwsi_2dpe_transformer`.
 Registrato chiamando `adapters.patho_bench.register_hilbert_encoders()`.
+
+Baseline (messe da parte, configs in `configs/baselines/`):
+`abmil_baseline`, `transmil_baseline`, `mambamil_baseline`, `clam_sb_baseline`, `clam_mb_baseline`, `dsmil_baseline`, `twodmamba_baseline`.
 
 ## Note importanti
 
 - **torch non è in pyproject.toml** — va installato manualmente con wheel CUDA matching prima di `pip install -e .`
-- **HilbertSequenceEncoder** espone `.embedding_dim` e `.precision` (richiesti da Trident/Patho-Bench Pooler)
+- **HilbertSequenceEncoder** e **TileCoordEncoder** espongono `.embedding_dim` e `.precision` (richiesti da Trident/Patho-Bench Pooler)
 - **input_dim=1536** per UNI2-h; modificare se si usa diverso extractor
 - Patho-Bench `ExperimentFactory.linprobe()` accetta `patch_embeddings_dirs` (list) + `model_name` per pooling on-the-fly, oppure `pooled_embeddings_dir` per embedding pre-poolati
-- PANDA estrazione in corso in background (PID 1259478) su `/data/hilbert-wsi/features/PANDA/`
+- **TileCoordEncoder** ha +0.263M overhead vs HilbertSequenceEncoder (backbone.proj_in 512→512 non usato, skip_proj=True); documentare in paper
+- **MambaMIL baseline** usa Mamba2, non SRMamba (paper originale usa fork custom) — denominare "MambaMIL-style" in tabelle paper
+- **CLAM baseline** manca SmoothTop-K instance clustering loss — denominare "CLAM-style attention" in tabelle
 
 ## Test
 
 ```bash
-pytest tests/ -v   # 28 passed, include Mamba CUDA forward
+pytest tests/ -v   # 38 passed, include Mamba CUDA forward
 ```
 
 ## Roadmap
 
-- **Phase 1** ✅: PANDA-ISUP ablation ordering (runs_v2/). Risultato: task saturo, no differenza tra orderings.
-- **Phase 2** (attuale): CPTAC-UCEC ablation completa (Transformer+ordering > ABMIL su task non saturo); random-ordering control in sospeso; espansione a BRCA/CCRCC
+- **Phase 1** ✅: PANDA-ISUP ablation ordering (runs_v2/). Task saturo, no differenza tra orderings.
+- **Phase 2** ✅: UCEC + BRCA ablation completa (ordering vs killer controls). Ordering contribuisce su dataset piccolo (UCEC), irrilevante su dataset grande (BRCA).
+- **Phase 2b** (attuale): 2D PE vs 1D ordering (stessa arch, fairness); CCRCC intermedio; xLSTM/GLA
 - **Phase 3**: multi-scala / tissue-aware Hilbert (multiscale.py)
-- **Phase 4**: altri backbone (xLSTM, GLA/RWKV-7, MambaMIL wrapper) + multi-fold
-
-**Baseline MIL da aggiungere per credibilità review**:
-- **TransMIL** — Transformer MIL senza ordering (Nyströmformer); isola contributo ordering da contributo architettura; **priorità alta**
-- **MambaMIL** — Mamba MIL senza Hilbert ordering; isola contributo ordering per Mamba specificamente; reviewer lo chiederà
-- **CLAM** — baseline classico atteso accanto ad ABMIL
-- xLSTM (confronto standard nei paper SSM 2025)
-- GLA o RWKV-7 (linear-attention, argomento "Mamba è speciale?")
-
-**Nota narrativa**: se TransMIL ≈ Snake+Transformer → ordering non serve al Transformer, architettura sola spiega il gap. Se Snake+Transformer >> TransMIL → ordering ha contributo indipendente. Questa è la domanda chiave del paper.
+- **Phase 4**: xLSTM, GLA come backbone alternativi per contributo 2

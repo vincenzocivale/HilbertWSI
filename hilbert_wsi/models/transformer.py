@@ -83,8 +83,8 @@ class _Block(nn.Module):
     def forward(
         self,
         x: Tensor,
-        cos: Tensor,
-        sin: Tensor,
+        cos: Tensor | None,
+        sin: Tensor | None,
         sdpa_mask: Tensor | None,
     ) -> Tensor:
         B, N, D = x.shape
@@ -94,8 +94,9 @@ class _Block(nn.Module):
         q = q.transpose(1, 2)                           # (B, H, N, D_head)
         k = k.transpose(1, 2)
         v = v.transpose(1, 2)
-        q = _apply_rope(q, cos, sin)
-        k = _apply_rope(k, cos, sin)
+        if cos is not None and sin is not None:
+            q = _apply_rope(q, cos, sin)
+            k = _apply_rope(k, cos, sin)
         out = F.scaled_dot_product_attention(
             q, k, v,
             attn_mask=sdpa_mask,
@@ -109,7 +110,17 @@ class _Block(nn.Module):
 
 
 class TransformerBackbone(SequenceBackbone):
-    """SOTA Transformer with RoPE + SDPA FlashAttention + SwiGLU."""
+    """SOTA Transformer with RoPE + SDPA FlashAttention + SwiGLU.
+
+    pe_type controls positional encoding in attention:
+        "rope"  — 1D RoPE applied to Q, K (default, used with ordering)
+        "none"  — no positional encoding in attention (used when 2D PE is
+                  already injected into input features by TileCoordEncoder)
+
+    skip_proj: if True, skip proj_in + dropout in forward(). Used by
+               TileCoordEncoder which handles projection + 2D PE injection
+               before calling the backbone.
+    """
 
     def __init__(
         self,
@@ -121,14 +132,20 @@ class TransformerBackbone(SequenceBackbone):
         rope_base: float = 10000.0,
         dropout: float = 0.1,
         pooling: str = "mean",
+        pe_type: str = "rope",
+        skip_proj: bool = False,
     ) -> None:
         super().__init__()
         if pooling not in ("cls", "mean"):
             raise ValueError(f"Unknown pooling '{pooling}'. Choose 'cls' or 'mean'.")
+        if pe_type not in ("rope", "none"):
+            raise ValueError(f"Unknown pe_type '{pe_type}'. Choose 'rope' or 'none'.")
         self.embedding_dim = embedding_dim
         self.pooling = pooling
         self.rope_base = rope_base
         self.head_dim = embedding_dim // n_heads
+        self.pe_type = pe_type
+        self.skip_proj = skip_proj
 
         self.proj_in = nn.Linear(input_dim, embedding_dim)
         self.dropout = nn.Dropout(dropout)
@@ -149,7 +166,7 @@ class TransformerBackbone(SequenceBackbone):
 
     def forward(self, seq: Tensor, mask: Tensor | None = None) -> Tensor:
         B, N, _ = seq.shape
-        x = self.dropout(self.proj_in(seq))
+        x = seq if self.skip_proj else self.dropout(self.proj_in(seq))
 
         if self.pooling == "cls":
             cls = self.cls.expand(B, -1, -1)
@@ -159,7 +176,7 @@ class TransformerBackbone(SequenceBackbone):
                 mask = torch.cat([cls_mask, mask], dim=1)
 
         seq_len = x.shape[1]
-        cos, sin = self._rope(seq_len, x.device, x.dtype)
+        cos, sin = (self._rope(seq_len, x.device, x.dtype) if self.pe_type == "rope" else (None, None))
 
         # SDPA attn_mask: additive, float. True positions = keep, False = mask out.
         sdpa_mask: Tensor | None = None

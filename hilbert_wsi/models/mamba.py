@@ -3,7 +3,7 @@ from __future__ import annotations
 import torch
 from torch import Tensor, nn
 
-from hilbert_wsi.models.base import SequenceBackbone, masked_mean
+from hilbert_wsi.models.base import GatedAttentionPool, SequenceBackbone, masked_mean
 
 
 def _largest_divisor(n: int, target: int) -> int:
@@ -66,12 +66,14 @@ class MambaBackbone(SequenceBackbone):
         headdim: int = 64,
         pooling: str = "mean",
         dropout: float = 0.0,
+        skip_proj: bool = False,
     ):
         super().__init__()
-        if pooling not in ("mean", "cls", "last"):
+        if pooling not in ("mean", "cls", "last", "attn"):
             raise ValueError(f"Unknown pooling '{pooling}'")
         self.embedding_dim = embedding_dim
         self.pooling = pooling
+        self.skip_proj = skip_proj
         self.proj_in = nn.Linear(input_dim, embedding_dim)
         self.dropout = nn.Dropout(dropout)
         self.blocks = nn.ModuleList(
@@ -84,9 +86,11 @@ class MambaBackbone(SequenceBackbone):
         if pooling == "cls":
             self.cls = nn.Parameter(torch.zeros(1, 1, embedding_dim))
             nn.init.trunc_normal_(self.cls, std=0.02)
+        if pooling == "attn":
+            self.attn_pool = GatedAttentionPool(embedding_dim)
 
     def forward(self, seq: Tensor, mask: Tensor | None = None) -> Tensor:
-        x = self.dropout(self.proj_in(seq))
+        x = seq if self.skip_proj else self.dropout(self.proj_in(seq))
         if self.pooling == "cls":
             cls = self.cls.expand(x.shape[0], -1, -1)
             x = torch.cat([cls, x], dim=1)
@@ -98,6 +102,8 @@ class MambaBackbone(SequenceBackbone):
         x = self.norm_out(x)
         if self.pooling == "mean":
             return masked_mean(x, mask)
+        if self.pooling == "attn":
+            return self.attn_pool(x, mask)
         if self.pooling == "cls":
             return x[:, 0]
         # "last": last valid position per sequence

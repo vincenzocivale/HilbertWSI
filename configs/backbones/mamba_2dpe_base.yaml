@@ -1,0 +1,25 @@
+# TileCoordEncoder with MambaBackbone — fair 2D vs 1D comparison.
+#
+# Architecture identical to mamba_base.yaml (depth=4, BiMamba, mean pool)
+# EXCEPT:
+#   - skip_proj: true → backbone's proj_in is bypassed; TileCoordEncoder owns proj_in
+#   - Tiles are processed in dataset-default order (raster-scan from H5 extraction)
+#   - 2D sin/cos PE from tile (x, y) coordinates is added to projected features
+#
+# Note: Mamba has no explicit positional encoding (position comes from scan order).
+# In this variant, scan order is arbitrary but spatial info is encoded in features
+# via 2D PE — a different inductive bias from SFC ordering.
+#
+# Paired 1D counterpart: configs/backbones/mamba_base.yaml
+# Model name: hilbertwsi_2dpe_mamba
+# Use: python -m scripts.run_benchmark ... --model_name hilbertwsi_2dpe_mamba
+input_dim: 1536
+embedding_dim: 512
+backbone_kwargs:
+  depth: 4
+  d_state: 64
+  d_conv: 4
+  expand: 2
+  headdim: 64
+  pooling: mean
+  dropout: 0.1

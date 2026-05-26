@@ -1,0 +1,15 @@
+# CLAM-SB baseline (Lu et al., Nature Biomed Eng 2021) — single attention branch.
+# Gated attention pooling: A = softmax(w^T [tanh(V h) ⊙ sigmoid(U h)]).
+#
+# Capacity: ~1.1M params (input_dim=1536, d_model=512, attention_dim=256).
+# Significantly smaller than Mamba (22M) / Transformer (13M) — document this
+# in the results table. CLAM was designed with ResNet-50 features (1024-dim);
+# we scale proj_in to 1536 for UNI2-h parity.
+#
+# NOTE: instance-level clustering auxiliary loss (SmoothTop-K) is not included.
+# Patho-Bench ExperimentFactory provides the downstream classifier head.
+input_dim: 1536
+d_model: 512
+attention_dim: 256
+dropout: 0.25
+act: relu

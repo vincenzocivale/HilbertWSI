@@ -1,0 +1,20 @@
+# TileCoordEncoder with TransformerBackbone — fair 2D vs 1D comparison.
+#
+# Architecture identical to transformer_base.yaml (depth=4, 8 heads, SwiGLU, RMSNorm)
+# EXCEPT:
+#   - pe_type: none   → RoPE disabled; position comes from 2D sin/cos PE (parameter-free)
+#   - skip_proj: true → backbone's proj_in is bypassed; TileCoordEncoder owns proj_in
+#
+# Paired 1D counterpart: configs/backbones/transformer_base.yaml
+# Model name: hilbertwsi_2dpe_transformer
+# Use: python -m scripts.run_benchmark ... --model_name hilbertwsi_2dpe_transformer
+input_dim: 1536
+embedding_dim: 512
+backbone_kwargs:
+  depth: 4
+  n_heads: 8
+  mlp_ratio: 2.67
+  rope_base: 10000.0   # unused when pe_type=none, kept for param parity check
+  dropout: 0.1
+  pooling: mean
+  pe_type: none        # 2D sin/cos PE injected before backbone, not RoPE in attention

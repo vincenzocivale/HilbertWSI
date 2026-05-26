@@ -23,6 +23,13 @@ def get_backbone(name: str, **kwargs) -> SequenceBackbone:
     return _REGISTRY[name](**kwargs)
 
 
+def get_backbone_class(name: str):
+    """Return the backbone class without instantiating it."""
+    if name not in _REGISTRY:
+        raise KeyError(f"Unknown backbone '{name}'. Available: {sorted(_REGISTRY)}")
+    return _REGISTRY[name]
+
+
 def available_backbones() -> list[str]:
     return sorted(_REGISTRY)
 
@@ -39,6 +46,7 @@ _REGISTRY["xlstm"] = xLSTMBackbone
 _REGISTRY["gla"] = GLABackbone
 
 __all__ = [
-    "SequenceBackbone", "get_backbone", "register_backbone", "available_backbones",
-    "MambaBackbone", "TransformerBackbone", "xLSTMBackbone", "GLABackbone",
+    "SequenceBackbone", "get_backbone", "get_backbone_class", "register_backbone",
+    "available_backbones", "MambaBackbone", "TransformerBackbone",
+    "xLSTMBackbone", "GLABackbone",
 ]

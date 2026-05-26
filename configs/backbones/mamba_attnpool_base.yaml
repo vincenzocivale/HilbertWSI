@@ -1,0 +1,12 @@
+# Passed as `model_kwargs` to HilbertSequenceEncoder via Patho-Bench.
+# UNI2-h feature dim is 1536. Uses gated attention pooling (ABMIL-style).
+input_dim: 1536
+embedding_dim: 512
+backbone_kwargs:
+  depth: 4
+  d_state: 64
+  d_conv: 4
+  expand: 2
+  headdim: 64
+  pooling: attn
+  dropout: 0.1

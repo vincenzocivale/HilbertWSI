@@ -28,3 +28,28 @@ def masked_mean(seq: Tensor, mask: Tensor | None) -> Tensor:
         return seq.mean(dim=1)
     m = mask.unsqueeze(-1).to(seq.dtype)
     return (seq * m).sum(dim=1) / m.sum(dim=1).clamp_min(1.0)
+
+
+class GatedAttentionPool(nn.Module):
+    """Gated attention pooling (ABMIL-style): learned weighted sum over N tokens.
+
+    Masks padded positions before softmax so they don't contribute to the
+    denominator (masked_fill(-inf), not multiply-by-zero).
+    """
+
+    def __init__(self, dim: int, hidden: int = 128) -> None:
+        super().__init__()
+        self.proj = nn.Sequential(
+            nn.Linear(dim, hidden),
+            nn.Tanh(),
+            nn.Linear(hidden, 1),
+        )
+
+    def forward(self, x: Tensor, mask: Tensor | None = None) -> Tensor:
+        scores = self.proj(x)                              # (B, N, 1)
+        if mask is not None:
+            scores = scores.masked_fill(
+                ~mask.unsqueeze(-1).bool(), float("-inf")
+            )
+        weights = torch.softmax(scores, dim=1)             # (B, N, 1)
+        return (weights * x).sum(dim=1)                    # (B, D)

@@ -1,0 +1,18 @@
+# CLAM-MB baseline (Lu et al., Nature Biomed Eng 2021) — multi-branch attention.
+# One gated-attention branch per class; branches averaged to produce (B, d_model).
+#
+# n_classes MUST match the downstream task:
+#   - cptac_ucec/Immune_class:  n_classes=3
+#   - panda/isup_grade:         n_classes=6
+#   - cptac_brca/Immune_class:  n_classes=3
+# Override per-experiment if needed.
+#
+# Capacity: ~1.8M params (input_dim=1536, d_model=512, n_classes=3).
+# NOTE: per-branch classifiers and instance-level clustering loss omitted;
+# Patho-Bench provides the downstream classifier.
+input_dim: 1536
+d_model: 512
+attention_dim: 256
+n_classes: 3
+dropout: 0.25
+act: relu
