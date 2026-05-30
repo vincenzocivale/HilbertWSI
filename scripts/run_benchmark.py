@@ -98,6 +98,9 @@ def main() -> None:
                    dest="combine_slides_per_patient",
                    help="Treat each slide independently (required for multi-slide patients).")
     p.add_argument("--gpu", type=int, default=0)
+    p.add_argument("--max_seq_len", type=int, default=None,
+                   help="Cap sequence length (tiles per slide). Overrides model_kwargs_yaml. "
+                        "Recommended: 2048 for CCRCC (slides up to ~15k tiles).")
     p.add_argument("--wandb", action="store_true", default=False,
                    help="Enable Weights & Biases logging.")
     p.add_argument("--wandb_project", default="hilbertwsi-sequencing",
@@ -119,6 +122,8 @@ def main() -> None:
     Path(args.splits_root).mkdir(parents=True, exist_ok=True)
 
     model_kwargs = _load_yaml(args.model_kwargs_yaml)
+    if args.max_seq_len is not None:
+        model_kwargs["max_seq_len"] = args.max_seq_len
 
     split_path, config_path = SplitFactory.from_hf(
         saveto=args.splits_root,
