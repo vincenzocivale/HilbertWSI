@@ -32,7 +32,7 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
-from hilbert_wsi.models.vendor.twodmamba.MambaMIL_2D import MambaMIL_2D
+from hilbert_wsi.models.baselines.vendor.twodmamba.MambaMIL_2D import MambaMIL_2D
 
 
 def _build_args(
