@@ -58,6 +58,7 @@ class TileCoordEncoder(nn.Module):
         embedding_dim: int = 512,
         backbone_kwargs: dict[str, Any] | None = None,
         dropout: float = 0.1,
+        max_seq_len: int | None = None,
     ) -> None:
         super().__init__()
         bb_kw = dict(backbone_kwargs or {})
@@ -87,16 +88,17 @@ class TileCoordEncoder(nn.Module):
         self.pos_enc = TwoDSinCosPositionalEncoding(embedding_dim)
         self.embedding_dim = embedding_dim
         self.precision = torch.float32
+        self.max_seq_len = max_seq_len
 
         nn.init.trunc_normal_(self.proj_in.weight, std=0.02)
         nn.init.zeros_(self.proj_in.bias)
 
-    def _encode(self, features: Tensor, coords: Tensor) -> Tensor:
+    def _encode(self, features: Tensor, coords: Tensor, mask: Tensor | None = None) -> Tensor:
         """Core encode: (B, N, D_in) + (B, N, 2) → (B, embedding_dim)."""
-        h = self.dropout_layer(self.proj_in(features))   # (B, N, embedding_dim)
-        pe = self.pos_enc(coords.to(features.device))    # (B, N, embedding_dim)
+        h = self.dropout_layer(self.proj_in(features))                        # (B, N, embedding_dim)
+        pe = self.pos_enc(coords.to(features.device)).to(features.dtype)      # (B, N, embedding_dim)
         h = h + pe
-        return self.backbone(h)                           # backbone skips its own proj_in
+        return self.backbone(h, mask=mask)                                     # backbone skips its own proj_in
 
     def forward(self, sample: dict[str, Any], device: torch.device | str = "cpu") -> Tensor:
         features = sample["features"].to(device)
@@ -112,4 +114,16 @@ class TileCoordEncoder(nn.Module):
                 f"Expected 3D features (B,N,D) and coords (B,N,2) after reshape; "
                 f"got {tuple(features.shape)} and {tuple(coords.shape)}."
             )
-        return self._encode(features, coords)
+        if self.max_seq_len is not None and features.shape[1] > self.max_seq_len:
+            features = features[:, : self.max_seq_len]
+            coords = coords[:, : self.max_seq_len]
+
+        mask = sample.get("mask")
+        if mask is not None:
+            mask = mask.to(device)
+            if mask.dim() == 4 and mask.shape[1] == 1:
+                mask = mask.reshape(mask.shape[0], -1)
+            if self.max_seq_len is not None and mask.shape[1] > self.max_seq_len:
+                mask = mask[:, : self.max_seq_len]
+
+        return self._encode(features, coords, mask=mask)

@@ -1,0 +1,21 @@
+# TileCoordEncoder with xLSTMBackbone — fair 2D vs 1D comparison.
+#
+# Architecture identical to xlstm_base.yaml (depth=4, mLSTM, mean pool)
+# EXCEPT:
+#   - skip_proj: true → backbone's proj_in is bypassed; TileCoordEncoder owns proj_in
+#   - Tiles are processed in dataset-default order (raster-scan from H5 extraction)
+#   - 2D sin/cos PE from tile (x, y) coordinates is added to projected features
+#
+# Paired 1D counterpart: configs/backbones/xlstm_base.yaml
+# Model name: hilbertwsi_2dpe_xlstm
+# Use: python -m scripts.run_benchmark ... --model_name hilbertwsi_2dpe_xlstm
+input_dim: 1536
+embedding_dim: 512
+backbone_kwargs:
+  depth: 4
+  num_heads: 8
+  context_length: 16384
+  proj_factor: 2.0
+  dropout: 0.1
+  pooling: mean
+  skip_proj: true

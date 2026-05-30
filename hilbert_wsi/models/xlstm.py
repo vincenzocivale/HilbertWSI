@@ -46,6 +46,7 @@ class xLSTMBackbone(SequenceBackbone):
         proj_factor: float = 2.0,
         dropout: float = 0.1,
         pooling: str = "mean",
+        skip_proj: bool = False,
     ):
         super().__init__()
         if pooling not in ("mean", "cls", "last"):
@@ -54,6 +55,7 @@ class xLSTMBackbone(SequenceBackbone):
 
         self.embedding_dim = embedding_dim
         self.pooling = pooling
+        self.skip_proj = skip_proj
 
         self.proj_in = nn.Linear(input_dim, embedding_dim)
         self.drop = nn.Dropout(dropout)
@@ -81,7 +83,7 @@ class xLSTMBackbone(SequenceBackbone):
             nn.init.trunc_normal_(self.cls, std=0.02)
 
     def forward(self, seq: Tensor, mask: Tensor | None = None) -> Tensor:
-        x = self.drop(self.proj_in(seq))
+        x = seq if self.skip_proj else self.drop(self.proj_in(seq))
 
         if self.pooling == "cls":
             cls = self.cls.expand(x.shape[0], -1, -1)

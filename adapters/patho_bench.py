@@ -212,7 +212,7 @@ class TwoDMambaWrapper(nn.Module):
     def forward(self, batch: dict[str, Any], device: str | torch.device = "cuda") -> torch.Tensor:
         feats = batch["features"].to(device)
         coords = batch["coords"].to(device)
-        # Patho-Bench collate: (B, S, N, D) and (B, S, N, 2). Flatten to (B*S, N, D/2).
+        # Patho-Bench collate: (B, S, N, D) and (B, S, N, 2). Flatten to (B*S, N, D).
         if feats.dim() == 4:
             B, S, N, D = feats.shape
             feats = feats.reshape(B * S, N, D)
@@ -311,14 +311,18 @@ def _build_2dpe(name: str, **kwargs: Any) -> "_TileCoordEncoderWrapper":
         )
     embedding_dim = kwargs.pop("embedding_dim", 512)
     backbone_kwargs = kwargs.pop("backbone_kwargs", None)
+    max_seq_len = kwargs.pop("max_seq_len", None)
     kwargs.pop("freeze", None)
     kwargs.pop("pretrained", None)
     kwargs.pop("ordering_kwargs", None)
+    if kwargs:
+        raise ValueError(f"Unexpected kwargs for '{name}': {sorted(kwargs)}")
     encoder = TileCoordEncoder(
         input_dim=input_dim,
         backbone=backbone,
         embedding_dim=embedding_dim,
         backbone_kwargs=backbone_kwargs,
+        max_seq_len=max_seq_len,
     )
     return _TileCoordEncoderWrapper(encoder)
 
@@ -358,9 +362,12 @@ def _build(name: str, **kwargs: Any) -> HilbertSequenceEncoder:
     embedding_dim = kwargs.pop("embedding_dim", 512)
     ordering_kwargs = kwargs.pop("ordering_kwargs", None)
     backbone_kwargs = kwargs.pop("backbone_kwargs", None)
+    max_seq_len = kwargs.pop("max_seq_len", None)
     # Patho-Bench passes `freeze` / `pretrained`; we ignore those (no pretraining yet).
     kwargs.pop("freeze", None)
     kwargs.pop("pretrained", None)
+    if kwargs:
+        raise ValueError(f"Unexpected kwargs for '{name}': {sorted(kwargs)}")
     return HilbertSequenceEncoder(
         input_dim=input_dim,
         ordering=ordering,
@@ -368,6 +375,7 @@ def _build(name: str, **kwargs: Any) -> HilbertSequenceEncoder:
         embedding_dim=embedding_dim,
         ordering_kwargs=ordering_kwargs,
         backbone_kwargs=backbone_kwargs,
+        max_seq_len=max_seq_len,
     )
 
 

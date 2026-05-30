@@ -1,0 +1,20 @@
+# TileCoordEncoder with GLABackbone — fair 2D vs 1D comparison.
+#
+# Architecture identical to gla_base.yaml (depth=4, GLA, mean pool)
+# EXCEPT:
+#   - skip_proj: true → backbone's proj_in is bypassed; TileCoordEncoder owns proj_in
+#   - Tiles are processed in dataset-default order (raster-scan from H5 extraction)
+#   - 2D sin/cos PE from tile (x, y) coordinates is added to projected features
+#
+# Paired 1D counterpart: configs/backbones/gla_base.yaml
+# Model name: hilbertwsi_2dpe_gla
+# Use: python -m scripts.run_benchmark ... --model_name hilbertwsi_2dpe_gla
+input_dim: 1536
+embedding_dim: 512
+backbone_kwargs:
+  depth: 4
+  n_heads: 8
+  mlp_ratio: 2.67
+  dropout: 0.1
+  pooling: mean
+  skip_proj: true

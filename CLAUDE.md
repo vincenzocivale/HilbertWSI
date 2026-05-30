@@ -145,22 +145,38 @@ split_path, config_path = SplitFactory.from_hf(
 
 † Cross-arch comparison (architettura diversa): MambaMIL=Mamba2+attnpool (0.484), TransMIL=Nystromformer+PPEG (0.542), 2DMamba=2D-SSM (0.527, patch_size=1024).
 
-**No-ordering controls per backbone architettura (fair 2D vs 1D — 🔲 da eseguire)**
+**No-ordering controls per backbone architettura (fair 2D vs 1D — stessa arch) ✅**
 
-| Modello | Arch | AUC |
-|---|---|---|
-| Random+Transformer (stessa arch) ✅ | Transformer | 0.519 ± 0.016 |
-| **2D PE+Transformer** (stessa arch) 🔲 | Transformer | ? |
-| **2D PE+Mamba** (stessa arch) 🔲 | Mamba | ? |
+⚠️ **NOTA (2026-05-30)**: i risultati 2D PE sotto sono stati prodotti con un bug in `pos_encoding.py:62` (`pe.to(coords.dtype)` con coords int64 → PE quasi-nullo). Bug fixato. **Da rilanciare.**
 
-Questi tre punti formano il confronto pulito: stessa arch, solo fonte di info spaziale varia.
+| Modello | Arch | AUC ± SE | CI [95%] | Status |
+|---|---|---|---|---|
+| Random+Transformer ⚠ | Transformer | 0.519 ± 0.016 | [0.487, 0.551] | ✅ valido |
+| **2D PE+Transformer** ⚠ | Transformer | **0.545 ± 0.015** | [0.515, 0.575] | 🔁 rerun richiesto |
+| **2D PE+Mamba** ⚠ | Mamba | **0.524 ± 0.015** | [0.494, 0.554] | 🔁 rerun richiesto |
 
-**Conclusioni UCEC:**
+**Confronti causali completi — 1D ordering vs 2D PE vs random (UCEC)**
+
+| Confronto | Δ AUC | CI | Interpretazione |
+|---|---|---|---|
+| Snake+Transformer vs Random+Transformer | **+0.110** | **DISJOINT** | Ordering causa +0.11 AUC su Transformer |
+| Snake+Transformer vs 2D PE+Transformer | **+0.084** | **DISJOINT** | Ordering >> coordinate spaziali 2D |
+| **2D PE+Transformer vs Random+Transformer** | +0.026 | **OVERLAP** | **2D PE ≈ random: coords senza ordering non bastano** |
+| Hilbert+Mamba vs 2D PE+Mamba | **+0.072** | **DISJOINT** | Ordering >> coordinate spaziali 2D (Mamba) |
+| **2D PE+Mamba vs MambaMIL-noorder†** | +0.040 | **OVERLAP** | **2D PE ≈ no-order: conferma cluster** |
+| Hilbert+Mamba vs MambaMIL-noorder† | **+0.112** | **DISJOINT** | Ordering causa +0.11 AUC su Mamba |
+
+† Cross-arch: MambaMIL=Mamba2+attnpool (0.484), TransMIL=Nystromformer+PPEG (0.542), 2DMamba=2D-SSM (0.527).
+
+**Cluster no-ordering (tutti OVERLAP tra loro):** 2D PE+Transformer (0.545†), TransMIL (0.542), 2DMamba (0.527), 2D PE+Mamba (0.524†), Random+Transformer (0.519), MambaMIL (0.484). †da rilanciare.
+
+**Conclusioni UCEC (1D SFC, confermate):**
 - Ordering SFC → +0.110 AUC vs random (Transformer), +0.112 vs no-order (Mamba): entrambi **CI DISJOINT** → effetto causale robusto
 - Mamba senza ordering collassa ad AUC ≈ 0.48 (< ABMIL 0.594): gli SSM richiedono struttura spaziale esplicita
-- 2DMamba (0.527) cade nel cluster no-ordering: 2D-nativeness non sostituisce ordinamento
 - Differenze tra ordering SFC: deboli (Δ ≤ 0.021 tra Transformer orderings), non significative singolarmente
-- **Gap aperto**: 2D PE (stessa arch) — rimane da eseguire per disambiguare "ordering" vs "any spatial info"
+
+**Conclusioni UCEC (2D PE, pending rerun):**
+- Pre-bug: 2D PE cadeva nel cluster no-ordering — verosimile ma da riconfermare post-fix.
 
 ### CPTAC-BRCA Immune_class — 653 slides, task saturo ✅
 
@@ -234,31 +250,10 @@ Dataset chiave per la curva dataset-size moderator (UCEC=saturo sopra 95 slide �
 **Orderings nel registry**: hilbert, zorder, snake, moore, peano, random, similarity
 **Backbones nel registry**: mamba, transformer, xlstm, gla
 
-### Priorità 1 — Confronto 2D PE vs 1D ordering (stessa arch, fairness) 🔲
+### Priorità 1 — Confronto 2D PE vs 1D ordering (stessa arch, fairness) 🔁 rerun
 
-```bash
-# 2D PE + Transformer (stessa arch di snake_transformer)
-conda run -n hilbert-wsi-clean python -m scripts.run_benchmark \
-    --source cptac_ucec --task Immune_class \
-    --experiment_type finetune \
-    --model_name hilbertwsi_2dpe_transformer \
-    --patch_features_dir /data/hilbert-wsi/features/CPTAC_UCEC \
-    --splits_root splits \
-    --saveto runs/cptac_ucec_2dpe_transformer \
-    --model_kwargs_yaml configs/backbones/transformer_2dpe_base.yaml \
-    --num_epochs 20
-
-# 2D PE + Mamba (stessa arch di hilbert_mamba)
-conda run -n hilbert-wsi-clean python -m scripts.run_benchmark \
-    --source cptac_ucec --task Immune_class \
-    --experiment_type finetune \
-    --model_name hilbertwsi_2dpe_mamba \
-    --patch_features_dir /data/hilbert-wsi/features/CPTAC_UCEC \
-    --splits_root splits \
-    --saveto runs/cptac_ucec_2dpe_mamba \
-    --model_kwargs_yaml configs/backbones/mamba_2dpe_base.yaml \
-    --num_epochs 20
-```
+Risultati UCEC pre-bug: 2D PE+Transformer=0.545±0.015, 2D PE+Mamba=0.524±0.015. **Da rilanciare** dopo fix `pos_encoding.py` (2026-05-30).
+Config 2D PE ora disponibili per tutte le arch: `mamba_2dpe_base.yaml`, `transformer_2dpe_base.yaml`, `xlstm_2dpe_base.yaml`, `gla_2dpe_base.yaml`.
 
 ### Priorità 2 — CPTAC-CCRCC (dataset intermedio, ~300 slides) 🔲
 
@@ -321,13 +316,14 @@ Baseline (messe da parte, configs in `configs/baselines/`):
 ## Test
 
 ```bash
-pytest tests/ -v   # 38 passed, include Mamba CUDA forward
+pytest tests/ -v   # 56 passed (38 originali + 18 nuovi: pos_encoding, truncation fairness)
 ```
 
 ## Roadmap
 
 - **Phase 1** ✅: PANDA-ISUP ablation ordering (runs_v2/). Task saturo, no differenza tra orderings.
 - **Phase 2** ✅: UCEC + BRCA ablation completa (ordering vs killer controls). Ordering contribuisce su dataset piccolo (UCEC), irrilevante su dataset grande (BRCA).
-- **Phase 2b** (attuale): 2D PE vs 1D ordering (stessa arch, fairness); CCRCC intermedio; xLSTM/GLA
+- **Phase 2b** 🔁: 2D PE vs 1D ordering — risultati precedenti invalidati da bug `pos_encoding.py:62` (fix 2026-05-30). Rerun UCEC 2D PE richiesto.
+- **Phase 2c** (attuale): fix codebase completato; CCRCC intermedio (~300 slides); rerun 2D PE; xLSTM/GLA su UCEC
 - **Phase 3**: multi-scala / tissue-aware Hilbert (multiscale.py)
 - **Phase 4**: xLSTM, GLA come backbone alternativi per contributo 2

@@ -37,7 +37,7 @@ class TwoDSinCosPositionalEncoding(nn.Module):
             coords: (B, N, 2) tile coordinates in any unit (pixels, microns, …).
                     Normalized per-slide internally.
         Returns:
-            pe: (B, N, embed_dim) positional encoding, same dtype as coords.
+            pe: (B, N, embed_dim) positional encoding, float32 regardless of coords dtype.
         """
         x = coords[..., 0].float()   # (B, N)
         y = coords[..., 1].float()
@@ -58,8 +58,8 @@ class TwoDSinCosPositionalEncoding(nn.Module):
         pe = torch.cat(
             [x_enc.sin(), x_enc.cos(), y_enc.sin(), y_enc.cos()],
             dim=-1,
-        )                                # (B, N, embed_dim)
-        return pe.to(coords.dtype)
+        )                                # (B, N, embed_dim) — float32 always
+        return pe
 
 
 def _normalize_per_slide(t: Tensor) -> Tensor:

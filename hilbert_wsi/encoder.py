@@ -36,6 +36,7 @@ class HilbertSequenceEncoder(nn.Module):
         embedding_dim: int = 512,
         ordering_kwargs: dict[str, Any] | None = None,
         backbone_kwargs: dict[str, Any] | None = None,
+        max_seq_len: int | None = None,
     ):
         super().__init__()
         self.ordering_name = ordering
@@ -49,6 +50,7 @@ class HilbertSequenceEncoder(nn.Module):
         )
         self.embedding_dim = embedding_dim
         self.precision = torch.float32
+        self.max_seq_len = max_seq_len
 
     def _compute_perms(self, coords: Tensor, features: Tensor) -> list[Tensor]:
         perms = []
@@ -74,11 +76,18 @@ class HilbertSequenceEncoder(nn.Module):
                 f"Expected 3D features (B,N,D) and coords (B,N,2) after reshape; "
                 f"got {tuple(features.shape)} and {tuple(coords.shape)}."
             )
+        # Truncate in H5 arrival order before computing the SFC permutation.
+        # Both 1D and 2D PE encoders truncate the same tile subset (fairness for C1).
+        if self.max_seq_len is not None and features.shape[1] > self.max_seq_len:
+            features = features[:, : self.max_seq_len]
+            coords = coords[:, : self.max_seq_len]
         perms = self._compute_perms(coords, features)
         idx = torch.stack([p.to(features.device) for p in perms], dim=0)
         seq = torch.gather(features, 1, idx.unsqueeze(-1).expand(-1, -1, features.shape[-1]))
         mask = sample.get("mask")
         if mask is not None:
             mask = mask.to(device)
+            if self.max_seq_len is not None and mask.shape[1] > self.max_seq_len:
+                mask = mask[:, : self.max_seq_len]
             mask = torch.gather(mask, 1, idx)
         return self.backbone(seq, mask=mask)
