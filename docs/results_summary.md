@@ -1,6 +1,36 @@
     # Results Summary
 
-    _Last updated: 2026-05-22 (added CLAM-SB, CLAM-MB, DSMIL baselines)_
+    _Last updated: 2026-06-02 (2D PE rerun post-fix `91bc137`; CCRCC BAP1 added)._
+    _Pool-asymmetry caveat added 2026-05-31._
+
+    ---
+
+    ## ⚠ Avvertenza sui confronti (2026-05-31)
+
+    **I confronti `HilbertWSI` vs MIL baseline in questa tabella confondono
+    l'effetto del 1D ordering con quello del pooling head**:
+
+    - Tutte le configurazioni HilbertWSI (`*_base.yaml`, `*_2dpe_base.yaml`)
+      usano `pooling: mean`.
+    - Tutte le baseline MIL (ABMIL, TransMIL, MambaMIL, CLAM, DSMIL) usano
+      **attention** o **CLS** pooling.
+
+    Conseguenze:
+    - Confronti **HilbertWSI 1D vs HilbertWSI random** (stessa pool=mean) →
+      **FAIR**, isolano effetto ordering.
+    - Confronti **HilbertWSI 1D vs HilbertWSI 2D PE** (stessa pool=mean) →
+      **FAIR**, isolano segnale 1D vs 2D.
+    - Confronti **HilbertWSI 1D vs `*_baseline`** → **CONFOUNDED** (ordering
+      + pool head insieme).
+
+    Per disambiguare, eseguire l'esperimento **A3** definito in
+    [`docs/verification_protocol.md`](verification_protocol.md): HilbertWSI
+    con `pooling: attn` contro le baseline. La config Mamba per A3 esiste
+    già (`configs/backbones/mamba_attnpool_base.yaml`); per Transformer/
+    xLSTM/GLA va creata.
+
+    Le righe **2D PE** in tabella (UCEC) sono state aggiornate con i valori post-fix
+    (rerun 2026-05-30, commit `91bc137`). I valori pre-fix (0.545/0.524) sono stati scartati.
 
     ---
 
@@ -17,29 +47,35 @@
 
     ### Full results table
 
-    | Model | AUC | acc | macro-F1 |
-    |---|---|---|---|
-    | **Snake + Transformer** ⭐ | **0.629 ± 0.012** | 0.452 ± 0.013 | 0.437 ± 0.013 |
-    | Zorder + Transformer | 0.622 ± 0.013 | 0.448 ± 0.017 | 0.436 ± 0.016 |
-    | Hilbert + Transformer | 0.614 ± 0.010 | 0.444 ± 0.013 | 0.425 ± 0.013 |
-    | Peano + Transformer | 0.613 ± 0.012 | 0.445 ± 0.015 | 0.430 ± 0.015 |
-    | Moore + Transformer | 0.608 ± 0.011 | 0.435 ± 0.014 | 0.422 ± 0.014 |
-    | Mean-pool (linprobe) | 0.601 ± 0.010 | 0.403 ± 0.012 | 0.387 ± 0.013 |
-    | **Hilbert + Mamba** | **0.596 ± 0.011** | 0.405 ± 0.013 | 0.387 ± 0.014 |
-    | ABMIL | 0.594 ± 0.013 | 0.387 ± 0.014 | 0.373 ± 0.015 |
-    | Peano + Mamba | 0.594 ± 0.012 | 0.401 ± 0.014 | 0.387 ± 0.014 |
-    | Similarity + Mamba | 0.592 ± 0.011 | 0.408 ± 0.014 | 0.391 ± 0.014 |
-    | Zorder + Mamba | 0.588 ± 0.011 | 0.398 ± 0.012 | 0.384 ± 0.013 |
-    | Snake + Mamba | 0.582 ± 0.011 | 0.400 ± 0.014 | 0.385 ± 0.014 |
-    | Moore + Mamba | 0.573 ± 0.011 | 0.375 ± 0.013 | 0.358 ± 0.013 |
-    | ── no-ordering controls ── | | | |
-    | TransMIL (no ordering) | 0.542 ± 0.013 | 0.338 ± 0.013 | 0.252 ± 0.013 |
-    | **DSMIL** ‡ | **0.536 ± 0.012** | 0.350 ± 0.013 | 0.328 ± 0.014 |
-    | 2DMamba (2D-native SSM) † | 0.527 ± 0.015 | 0.368 ± 0.014 | 0.302 ± 0.017 |
-    | CLAM-SB ‡ | 0.521 ± 0.013 | 0.332 ± 0.012 | 0.309 ± 0.013 |
-    | Random + Transformer | 0.519 ± 0.016 | 0.344 ± 0.012 | 0.269 ± 0.014 |
-    | CLAM-MB ‡ | 0.507 ± 0.014 | 0.344 ± 0.013 | 0.309 ± 0.014 |
-    | MambaMIL (no ordering) | 0.484 ± 0.014 | 0.319 ± 0.012 | 0.258 ± 0.014 |
+    Colonna **Pool** mostra il pooling head usato: `mean` = mean pool (HilbertWSI default), `attn` = gated/critical-instance attention, `cls` = CLS token. Vedi avvertenza sopra.
+
+    | Model | Pool | AUC | acc | macro-F1 |
+    |---|---|---|---|---|
+    | **Snake + Transformer** ⭐ | mean | **0.629 ± 0.012** | 0.452 ± 0.013 | 0.437 ± 0.013 |
+    | Zorder + Transformer | mean | 0.622 ± 0.013 | 0.448 ± 0.017 | 0.436 ± 0.016 |
+    | Hilbert + Transformer | mean | 0.614 ± 0.010 | 0.444 ± 0.013 | 0.425 ± 0.013 |
+    | Peano + Transformer | mean | 0.613 ± 0.012 | 0.445 ± 0.015 | 0.430 ± 0.015 |
+    | Moore + Transformer | mean | 0.608 ± 0.011 | 0.435 ± 0.014 | 0.422 ± 0.014 |
+    | Mean-pool (linprobe) | mean | 0.601 ± 0.010 | 0.403 ± 0.012 | 0.387 ± 0.013 |
+    | **Hilbert + Mamba** | mean | **0.596 ± 0.011** | 0.405 ± 0.013 | 0.387 ± 0.014 |
+    | ABMIL | attn | 0.594 ± 0.013 | 0.387 ± 0.014 | 0.373 ± 0.015 |
+    | Peano + Mamba | mean | 0.594 ± 0.012 | 0.401 ± 0.014 | 0.387 ± 0.014 |
+    | Similarity + Mamba | mean | 0.592 ± 0.011 | 0.408 ± 0.014 | 0.391 ± 0.014 |
+    | Zorder + Mamba | mean | 0.588 ± 0.011 | 0.398 ± 0.012 | 0.384 ± 0.013 |
+    | Snake + Mamba | mean | 0.582 ± 0.011 | 0.400 ± 0.014 | 0.385 ± 0.014 |
+    | Moore + Mamba | mean | 0.573 ± 0.011 | 0.375 ± 0.013 | 0.358 ± 0.013 |
+    | ── no-ordering controls ── | | | | |
+    | 2D PE + Mamba ✓ | mean | 0.542 ± 0.016 | — | — |
+    | TransMIL (no ordering) | cls | 0.542 ± 0.013 | 0.338 ± 0.013 | 0.252 ± 0.013 |
+    | **DSMIL** ‡ | attn | **0.536 ± 0.012** | 0.350 ± 0.013 | 0.328 ± 0.014 |
+    | 2DMamba (2D-native SSM) † | (2D SSM) | 0.527 ± 0.015 | 0.368 ± 0.014 | 0.302 ± 0.017 |
+    | CLAM-SB ‡ | attn | 0.521 ± 0.013 | 0.332 ± 0.012 | 0.309 ± 0.013 |
+    | Random + Transformer | mean | 0.519 ± 0.016 | 0.344 ± 0.012 | 0.269 ± 0.014 |
+    | 2D PE + Transformer ✓ | mean | 0.515 ± 0.014 | — | — |
+    | CLAM-MB ‡ | attn | 0.507 ± 0.014 | 0.344 ± 0.013 | 0.309 ± 0.014 |
+    | MambaMIL (no ordering) | attn | 0.484 ± 0.014 | 0.319 ± 0.012 | 0.258 ± 0.014 |
+
+    ✓ = post-fix rerun (2026-05-30, `cptac_ucec_2dpe_rerun_*`). Pre-fix values (0.545/0.524) were invalidated by `91bc137`.
 
     † 2DMamba: pure-Python pscan, patch_size=1024, 14.4M params. Some tile collision loss at this resolution.
     ‡ CLAM-SB/MB and DSMIL: ~1.1–1.8M params (standard CLAM config with UNI2-h input_dim=1536). No instance-level clustering loss; Patho-Bench provides classifier head only.
@@ -148,11 +184,13 @@
     | Question | Experiment needed | Status |
     |---|---|---|
     | Does ordering+Mamba generalize beyond UCEC? | Hilbert+Mamba on CPTAC-BRCA | ✅ No: BRCA saturated |
-    | Does attn pooling explain MambaMIL gap on BRCA? | Hilbert+Mamba (attn) vs random | ✅ No: pooling not the cause |
-    | Does ordering hold on intermediate-size dataset? | CPTAC-CCRCC mutations (BAP1, PBRM1, VHL) | pending |
+    | Does attn pooling explain MambaMIL gap on BRCA? | Hilbert+Mamba (attn) vs random | ✅ No: pooling not the cause (BRCA only) |
+    | **Does ordering survive when HilbertWSI uses attn pool too (on UCEC)?** | Esperimento A3 in `verification_protocol.md` — `hilbertwsi_hilbert_mamba` con `mamba_attnpool_base.yaml` vs `mambamil_baseline` | **pending — critico per C2** |
+    | Does ordering hold on intermediate-size dataset? | CPTAC-CCRCC BAP1 trio (2D PE vs 1D vs random) | ✅ Reversal: 2D PE >> ordering on mutation task |
     | Does the ordering effect hold on harder tasks? | EBRAINS 30-class (features pending) | pending |
     | Transformer vs Mamba capacity-controlled? | Mamba at 13M (depth-matched) | pending |
     | Is Snake consistently best or dataset-specific? | Multi-dataset ordering ablation | pending |
+    | Are 2D PE rows valid post-fix? | Rerun `hilbertwsi_2dpe_{mamba,transformer}` on UCEC | ✅ Done: 0.515 (Transformer), 0.542 (Mamba) |
 
     ---
 

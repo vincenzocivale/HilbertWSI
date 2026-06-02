@@ -1,0 +1,12 @@
+# TransformerBackbone only supports pooling ∈ {"cls","mean"} — "attn" not implemented.
+# Using pooling=cls (learned CLS token, attention-like aggregator) to match A3 pool parity.
+# All other params identical to transformer_base.yaml.
+input_dim: 1536
+embedding_dim: 512
+backbone_kwargs:
+  depth: 4
+  n_heads: 8
+  mlp_ratio: 2.67     # SwiGLU effective hidden dim ~= 1365
+  rope_base: 10000.0
+  dropout: 0.1
+  pooling: cls

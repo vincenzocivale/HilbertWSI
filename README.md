@@ -25,13 +25,19 @@ H5 patch features                          Patho-Bench
 | Random + Transformer ⚠ | 0.519 ± 0.016 |
 | MambaMIL (no ordering) ⚠ | 0.484 ± 0.014 |
 
-⚠ = no-ordering control. Full table in [docs/benchmarks.md](docs/benchmarks.md).
+⚠ = no-ordering control. Full table in [docs/results_summary.md](docs/results_summary.md).
 
 **Decision tree outcome:**
 - Snake+Transformer >> Random+Transformer (+0.11 AUC, **DISJOINT CI**) → ordering contributes independently of architecture
 - Hilbert+Mamba >> MambaMIL (+0.11 AUC, **DISJOINT CI**) → ordering is *essential* for Mamba; without it Mamba collapses to near-random
 - 2DMamba (CVPR 2025 rival) ≈ Random+Transformer (CI overlap) → 2D-native SSM does not bypass 1D ordering
 - All no-ordering controls ≤ ABMIL → over-parameterised models without spatial structure fail to outperform simple pooling
+
+> ⚠ **Caveat (2026-05-31)**: i confronti HilbertWSI (pool=mean) vs MIL
+> baselines (pool=attn) confondono ordering ed pooling head. Per la
+> verifica controllata vedi [**docs/verification_protocol.md**](docs/verification_protocol.md)
+> — definisce gli esperimenti A1–A4 che isolano l'effetto causale del
+> 1D SFC ordering rispetto al pool e all'architettura.
 
 ## Status
 
@@ -135,8 +141,14 @@ tests/
 ├── test_orderings.py   # 30+ tests incl. Peano regression + random per-slide
 └── test_encoder.py     # smoke test + Mamba CUDA forward
 docs/
-├── architecture.md
-└── benchmarks.md
+├── architecture.md           # codebase reference (modules, contracts, baselines)
+├── benchmarks.md             # run commands + dataset listing
+├── results_summary.md        # SSOT for numerical results (UCEC, BRCA, PANDA)
+├── verification_protocol.md  # A1–A4 protocol to verify SFC advantage causally
+├── roadmap_c1.md             # C1 experiments (ordering vs no-ordering, same arch)
+├── roadmap_c2.md             # C2 experiments (HilbertWSI vs MIL baselines)
+└── archive/
+    └── repo_corrections_2026-05-30.md  # historical audit (resolved by 91bc137)
 ```
 
 ## Extending

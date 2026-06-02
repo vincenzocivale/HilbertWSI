@@ -1,6 +1,12 @@
 # Repo Corrections — Allineamento alla tesi a 2 contributi
 
-_Generato: 2026-05-30. Da rivedere dopo ogni nuovo round di esperimenti._
+> **AUDIT STORICO ARCHIVIATO.** Generato 2026-05-30, archiviato 2026-05-31.
+> Le azioni §8.1, §8.2, §8.3, §8.4 sono state implementate nel commit `91bc137`
+> (`fix(critical): four codebase bugs invalidating 2D PE results`).
+> Per audit corrente e protocollo di verifica vedi
+> [`docs/verification_protocol.md`](../verification_protocol.md).
+
+_Generato: 2026-05-30. Archiviato: 2026-05-31._
 
 ## Contesto
 

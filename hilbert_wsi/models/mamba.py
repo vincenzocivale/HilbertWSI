@@ -44,11 +44,17 @@ class BiMambaBlock(nn.Module):
         )
         self.norm2 = nn.LayerNorm(dim)
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: Tensor, mask: Tensor | None = None) -> Tensor:
+        # Zero out padding before SSM scan so padded positions don't contaminate
+        # the backward scan's initial state or forward state carry-over.
+        if mask is not None:
+            x = x * mask.unsqueeze(-1).to(x.dtype)
         f = self.fwd(x)
         b = torch.flip(self.bwd(torch.flip(x, dims=[1])), dims=[1])
         x = x + self.norm(f + b)
         x = x + self.norm2(self.mlp(x))
+        if mask is not None:
+            x = x * mask.unsqueeze(-1).to(x.dtype)
         return x
 
 
@@ -98,7 +104,7 @@ class MambaBackbone(SequenceBackbone):
                 cls_mask = torch.ones(mask.shape[0], 1, dtype=mask.dtype, device=mask.device)
                 mask = torch.cat([cls_mask, mask], dim=1)
         for blk in self.blocks:
-            x = blk(x)
+            x = blk(x, mask=mask)
         x = self.norm_out(x)
         if self.pooling == "mean":
             return masked_mean(x, mask)

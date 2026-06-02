@@ -87,6 +87,8 @@ class HilbertSequenceEncoder(nn.Module):
         mask = sample.get("mask")
         if mask is not None:
             mask = mask.to(device)
+            if mask.dim() == 4 and mask.shape[1] == 1:
+                mask = mask.reshape(mask.shape[0], -1)
             if self.max_seq_len is not None and mask.shape[1] > self.max_seq_len:
                 mask = mask[:, : self.max_seq_len]
             mask = torch.gather(mask, 1, idx)
