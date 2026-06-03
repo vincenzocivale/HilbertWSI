@@ -1,0 +1,15 @@
+[2026-06-02 19:28:00] Waiting for UCEC 2dpe_transformer to finish...
+[2026-06-02 20:04:30] UCEC 2dpe_transformer done — starting 6 CCRCC experiments
+[2026-06-02 20:04:30] START hilbertwsi_hilbert_transformer
+[2026-06-02 20:05:53] FAIL hilbertwsi_hilbert_transformer
+[2026-06-02 20:05:53] START hilbertwsi_random_transformer
+[2026-06-02 20:06:14] FAIL hilbertwsi_random_transformer
+[2026-06-02 20:06:14] START hilbertwsi_2dpe_transformer
+[2026-06-02 20:07:31] FAIL hilbertwsi_2dpe_transformer
+[2026-06-02 20:07:31] START hilbertwsi_hilbert_mamba
+[2026-06-02 20:08:01] FAIL hilbertwsi_hilbert_mamba
+[2026-06-02 20:08:01] START hilbertwsi_random_mamba
+[2026-06-02 20:08:30] FAIL hilbertwsi_random_mamba
+[2026-06-02 20:08:30] START hilbertwsi_2dpe_mamba
+[2026-06-02 20:08:59] FAIL hilbertwsi_2dpe_mamba
+[2026-06-02 20:08:59] ALL 6 CCRCC EXPERIMENTS DONE

@@ -1,7 +1,9 @@
 """Regression tests for truncation symmetry between 1D and 2D encoders.
 
 Covers:
-- §8.4/2.1 fix (Option A): both encoders truncate in H5 arrival order.
+- Both encoders cap length with a deterministic uniform-random per-slide
+  subsample (the SAME subset for 1D and 2D), applied BEFORE ordering — not a
+  first-N H5-order slab (see tests/test_pipeline_fixes.py::BUG B).
 - §8.3 fix: TileCoordEncoder propagates mask to backbone.
 - §8.2 fix: xLSTM and GLA accept skip_proj kwarg.
 """
@@ -53,7 +55,7 @@ def _make_sample(b: int = 1, n: int = 200, d: int = 16):
 
 
 def test_1d_encoder_truncates_before_ordering():
-    """§8.4: 1D encoder truncates in H5 order (before permutation), not along SFC."""
+    """1D encoder caps length (uniform subsample) BEFORE the SFC permutation."""
     _ensure_registered()
     max_len = 50
     sample = _make_sample(n=200)
@@ -73,7 +75,7 @@ def test_1d_encoder_truncates_before_ordering():
 
 
 def test_2d_encoder_truncates_before_pe():
-    """§8.4: 2D encoder truncates in H5 order before adding PE."""
+    """2D encoder caps length (uniform subsample) before adding PE."""
     _ensure_registered()
     max_len = 50
     sample = _make_sample(n=200)
@@ -93,8 +95,8 @@ def test_2d_encoder_truncates_before_pe():
 
 
 def test_both_encoders_see_same_tile_subset_under_truncation():
-    """§8.4: 1D and 2D encoders, given same sample + same max_seq_len,
-    see the same N tiles (first max_seq_len in H5 order)."""
+    """1D and 2D encoders, given same sample + same max_seq_len, keep the same
+    representative subset (subsample seed derives from coords)."""
     _ensure_registered()
     max_len = 30
     sample = _make_sample(b=1, n=100)

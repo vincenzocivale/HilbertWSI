@@ -1,0 +1,97 @@
+
+  0%|          | 0/20 [00:00<?, ?it/s]
+      Epoch 0 train:   0%|          | 0/20 [00:00<?, ?it/s]
+      Epoch 0 train:   0%|          | 0/20 [00:00<?, ?it/s, avg_loss=0.6939, num_batches=1/66, num_samples=1]
+      Epoch 0 train:   0%|          | 0/20 [00:00<?, ?it/s, avg_loss=0.3521, num_batches=2/66, num_samples=2]
+      Epoch 0 train:   0%|          | 0/20 [00:01<?, ?it/s, avg_loss=0.2407, num_batches=3/66, num_samples=3]
+      Epoch 0 train:   0%|          | 0/20 [00:01<?, ?it/s, avg_loss=2.2138, num_batches=4/66, num_samples=4]
+      Epoch 0 train:   0%|          | 0/20 [00:01<?, ?it/s, avg_loss=1.7712, num_batches=5/66, num_samples=5]
+      Epoch 0 train:   0%|          | 0/20 [00:01<?, ?it/s, avg_loss=1.4762, num_batches=6/66, num_samples=6]
+      Epoch 0 train:   0%|          | 0/20 [00:01<?, ?it/s, avg_loss=1.2683, num_batches=7/66, num_samples=7]
+      Epoch 0 train:   0%|          | 0/20 [00:01<?, ?it/s, avg_loss=1.1256, num_batches=8/66, num_samples=8]
+      Epoch 0 train:   0%|          | 0/20 [00:02<?, ?it/s, avg_loss=1.0054, num_batches=9/66, num_samples=9]
+      Epoch 0 train:   0%|          | 0/20 [00:05<?, ?it/s, avg_loss=0.9075, num_batches=10/66, num_samples=10]
+      Epoch 0 train:   0%|          | 0/20 [00:05<?, ?it/s, avg_loss=0.8279, num_batches=11/66, num_samples=11]
+      Epoch 0 train:   0%|          | 0/20 [00:05<?, ?it/s, avg_loss=0.7736, num_batches=12/66, num_samples=12]
+      Epoch 0 train:   0%|          | 0/20 [00:05<?, ?it/s, avg_loss=0.7173, num_batches=13/66, num_samples=13]
+      Epoch 0 train:   0%|          | 0/20 [00:06<?, ?it/s, avg_loss=0.7526, num_batches=14/66, num_samples=14]
+      Epoch 0 train:   0%|          | 0/20 [00:08<?, ?it/s, avg_loss=0.7095, num_batches=15/66, num_samples=15]
+      Epoch 0 train:   0%|          | 0/20 [00:08<?, ?it/s, avg_loss=0.6709, num_batches=16/66, num_samples=16]
+      Epoch 0 train:   0%|          | 0/20 [00:08<?, ?it/s, avg_loss=0.6320, num_batches=17/66, num_samples=17]
+      Epoch 0 train:   0%|          | 0/20 [00:09<?, ?it/s, avg_loss=0.5974, num_batches=18/66, num_samples=18]
+      Epoch 0 train:   0%|          | 0/20 [00:13<?, ?it/s, avg_loss=0.5974, num_batches=18/66, num_samples=18]
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/oem/HilbertWSI/scripts/run_benchmark.py", line 251, in <module>
+    main()
+  File "/home/oem/HilbertWSI/scripts/run_benchmark.py", line 246, in main
+    exp.train()
+  File "/home/oem/miniconda3/envs/hilbert-wsi-clean/lib/python3.11/site-packages/patho_bench/experiments/FinetuningExperiment.py", line 154, in train
+    self._run_single_epoch()
+  File "/home/oem/miniconda3/envs/hilbert-wsi-clean/lib/python3.11/site-packages/patho_bench/experiments/FinetuningExperiment.py", line 367, in _run_single_epoch
+    loss, info = self.model(batch, output='loss')
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/oem/miniconda3/envs/hilbert-wsi-clean/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/oem/miniconda3/envs/hilbert-wsi-clean/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/oem/miniconda3/envs/hilbert-wsi-clean/lib/python3.11/site-packages/patho_bench/TrainableSlideEncoder.py", line 61, in forward
+    slide_features = Pooler.pool(self.slide_encoder, slide_encoder_input, self.device)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/oem/miniconda3/envs/hilbert-wsi-clean/lib/python3.11/site-packages/patho_bench/Pooler.py", line 134, in pool
+    return model.forward(cleaned_sample, device)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/oem/HilbertWSI/hilbert_wsi/encoder.py", line 120, in forward
+    return self.backbone(seq, mask=mask)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/oem/miniconda3/envs/hilbert-wsi-clean/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/oem/miniconda3/envs/hilbert-wsi-clean/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/oem/HilbertWSI/hilbert_wsi/models/transformer.py", line 189, in forward
+    x = blk(x, cos, sin, sdpa_mask)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/oem/miniconda3/envs/hilbert-wsi-clean/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/oem/miniconda3/envs/hilbert-wsi-clean/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/oem/HilbertWSI/hilbert_wsi/models/transformer.py", line 108, in forward
+    x = x + self.ffn(self.norm_ffn(x))
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/oem/miniconda3/envs/hilbert-wsi-clean/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/oem/miniconda3/envs/hilbert-wsi-clean/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/oem/HilbertWSI/hilbert_wsi/models/transformer.py", line 63, in forward
+    return self.dropout(self.w_down(F.silu(self.w_gate(x)) * self.w_up(x)))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/oem/miniconda3/envs/hilbert-wsi-clean/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/oem/miniconda3/envs/hilbert-wsi-clean/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/oem/miniconda3/envs/hilbert-wsi-clean/lib/python3.11/site-packages/torch/nn/modules/dropout.py", line 70, in forward
+    return F.dropout(input, self.p, self.training, self.inplace)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/oem/miniconda3/envs/hilbert-wsi-clean/lib/python3.11/site-packages/torch/nn/functional.py", line 1425, in dropout
+    _VF.dropout_(input, p, training) if inplace else _VF.dropout(input, p, training)
+                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 68.00 MiB. GPU 0 has a total capacity of 11.76 GiB of which 16.56 MiB is free. Process 977 has 248.00 MiB memory in use. Process 6709 has 3.27 GiB memory in use. Including non-PyTorch memory, this process has 8.20 GiB memory in use. Of the allocated memory 6.75 GiB is allocated by PyTorch, and 1.15 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+
+ERROR conda.cli.main_run:execute(127): `conda run python -m scripts.run_benchmark --source cptac_ccrcc --task BAP1_mutation --experiment_type finetune --model_name hilbertwsi_random_transformer --patch_features_dir /data/hilbert-wsi/features/CPTAC_CCRCC --splits_root splits --saveto runs/ccrcc_final_random_transformer --model_kwargs_yaml configs/backbones/transformer_base.yaml --num_epochs 20 --bag_size 2048 --gpu 0` failed. (See above for error)
+Loaded split from splits/cptac_ccrcc/BAP1_mutation/k=all.tsv with 103 samples and 50 folds assigned.
+
+Experiment dir: runs/ccrcc_final_random_transformer
+############################################################################################################
+Training: Fold 1 of 50...
+

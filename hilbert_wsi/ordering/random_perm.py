@@ -44,3 +44,25 @@ class RandomOrdering(OrderingScheme):
         g = torch.Generator(device="cpu")
         g.manual_seed(_slide_seed(coords, self.base_seed))
         return torch.randperm(n, generator=g).to(coords.device)
+
+
+def subsample_indices(coords: Tensor, max_seq_len: int, base_seed: int = 0) -> Tensor:
+    """Deterministic per-slide **uniform-random** subsample of tile indices.
+
+    Returns sorted indices to keep, of length ``min(N, max_seq_len)``. The
+    sample is drawn uniformly over all N tiles, so it is spatially
+    representative — unlike a first-``max_seq_len`` truncation in H5 arrival
+    order, which keeps a contiguous spatial slab (e.g. the left/top of the
+    slide) and discards a whole region.
+
+    The seed derives from ``coords`` (via :func:`_slide_seed`), so two encoders
+    given the same slide + ``max_seq_len`` keep the **same** subset (fairness),
+    and the choice is stable across runs.
+    """
+    n = coords.shape[0]
+    if max_seq_len is None or n <= max_seq_len:
+        return torch.arange(n, device=coords.device)
+    g = torch.Generator(device="cpu")
+    g.manual_seed(_slide_seed(coords, base_seed))
+    keep = torch.randperm(n, generator=g)[:max_seq_len]
+    return keep.sort().values.to(coords.device)

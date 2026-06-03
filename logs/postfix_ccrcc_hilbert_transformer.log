@@ -1,0 +1,128 @@
+
+  0%|          | 0/20 [00:00<?, ?it/s]
+      Epoch 0 train:   0%|          | 0/20 [00:00<?, ?it/s]
+      Epoch 0 train:   0%|          | 0/20 [00:00<?, ?it/s, avg_loss=0.5921, num_batches=1/66, num_samples=1]
+      Epoch 0 train:   0%|          | 0/20 [00:00<?, ?it/s, avg_loss=0.3011, num_batches=2/66, num_samples=2]
+      Epoch 0 train:   0%|          | 0/20 [00:00<?, ?it/s, avg_loss=0.2059, num_batches=3/66, num_samples=3]
+      Epoch 0 train:   0%|          | 0/20 [00:00<?, ?it/s, avg_loss=2.2779, num_batches=4/66, num_samples=4]
+      Epoch 0 train:   0%|          | 0/20 [00:00<?, ?it/s, avg_loss=1.8224, num_batches=5/66, num_samples=5]
+      Epoch 0 train:   0%|          | 0/20 [00:01<?, ?it/s, avg_loss=1.5188, num_batches=6/66, num_samples=6]
+      Epoch 0 train:   0%|          | 0/20 [00:01<?, ?it/s, avg_loss=1.3030, num_batches=7/66, num_samples=7]
+      Epoch 0 train:   0%|          | 0/20 [00:01<?, ?it/s, avg_loss=1.1449, num_batches=8/66, num_samples=8]
+      Epoch 0 train:   0%|          | 0/20 [00:01<?, ?it/s, avg_loss=1.0227, num_batches=9/66, num_samples=9]
+      Epoch 0 train:   0%|          | 0/20 [00:02<?, ?it/s, avg_loss=0.9240, num_batches=10/66, num_samples=10]
+      Epoch 0 train:   0%|          | 0/20 [00:02<?, ?it/s, avg_loss=0.8429, num_batches=11/66, num_samples=11]
+      Epoch 0 train:   0%|          | 0/20 [00:02<?, ?it/s, avg_loss=0.7811, num_batches=12/66, num_samples=12]
+      Epoch 0 train:   0%|          | 0/20 [00:02<?, ?it/s, avg_loss=0.7300, num_batches=13/66, num_samples=13]
+      Epoch 0 train:   0%|          | 0/20 [00:03<?, ?it/s, avg_loss=0.7682, num_batches=14/66, num_samples=14]
+      Epoch 0 train:   0%|          | 0/20 [00:04<?, ?it/s, avg_loss=0.7274, num_batches=15/66, num_samples=15]
+      Epoch 0 train:   0%|          | 0/20 [00:04<?, ?it/s, avg_loss=0.7043, num_batches=16/66, num_samples=16]
+      Epoch 0 train:   0%|          | 0/20 [00:04<?, ?it/s, avg_loss=0.6639, num_batches=17/66, num_samples=17]
+      Epoch 0 train:   0%|          | 0/20 [00:05<?, ?it/s, avg_loss=0.6278, num_batches=18/66, num_samples=18]
+      Epoch 0 train:   0%|          | 0/20 [00:08<?, ?it/s, avg_loss=0.6453, num_batches=19/66, num_samples=19]
+      Epoch 0 train:   0%|          | 0/20 [00:12<?, ?it/s, avg_loss=0.6165, num_batches=20/66, num_samples=20]
+      Epoch 0 train:   0%|          | 0/20 [00:12<?, ?it/s, avg_loss=0.5874, num_batches=21/66, num_samples=21]
+      Epoch 0 train:   0%|          | 0/20 [00:12<?, ?it/s, avg_loss=0.8086, num_batches=22/66, num_samples=22]
+      Epoch 0 train:   0%|          | 0/20 [00:12<?, ?it/s, avg_loss=0.7735, num_batches=23/66, num_samples=23]
+      Epoch 0 train:   0%|          | 0/20 [00:13<?, ?it/s, avg_loss=0.7432, num_batches=24/66, num_samples=24]
+      Epoch 0 train:   0%|          | 0/20 [00:13<?, ?it/s, avg_loss=0.7139, num_batches=25/66, num_samples=25]
+      Epoch 0 train:   0%|          | 0/20 [00:13<?, ?it/s, avg_loss=0.6891, num_batches=26/66, num_samples=26]
+      Epoch 0 train:   0%|          | 0/20 [00:13<?, ?it/s, avg_loss=0.6639, num_batches=27/66, num_samples=27]
+      Epoch 0 train:   0%|          | 0/20 [00:13<?, ?it/s, avg_loss=0.7895, num_batches=28/66, num_samples=28]
+      Epoch 0 train:   0%|          | 0/20 [00:13<?, ?it/s, avg_loss=0.7629, num_batches=29/66, num_samples=29]
+      Epoch 0 train:   0%|          | 0/20 [00:14<?, ?it/s, avg_loss=0.7401, num_batches=30/66, num_samples=30]
+      Epoch 0 train:   0%|          | 0/20 [00:16<?, ?it/s, avg_loss=0.7183, num_batches=31/66, num_samples=31]
+      Epoch 0 train:   0%|          | 0/20 [00:16<?, ?it/s, avg_loss=0.6979, num_batches=32/66, num_samples=32]
+      Epoch 0 train:   0%|          | 0/20 [00:17<?, ?it/s, avg_loss=0.6968, num_batches=33/66, num_samples=33]
+      Epoch 0 train:   0%|          | 0/20 [00:17<?, ?it/s, avg_loss=0.6793, num_batches=34/66, num_samples=34]
+      Epoch 0 train:   0%|          | 0/20 [00:17<?, ?it/s, avg_loss=0.6635, num_batches=35/66, num_samples=35]
+      Epoch 0 train:   0%|          | 0/20 [00:18<?, ?it/s, avg_loss=0.6514, num_batches=36/66, num_samples=36]
+      Epoch 0 train:   0%|          | 0/20 [00:18<?, ?it/s, avg_loss=0.6868, num_batches=37/66, num_samples=37]
+      Epoch 0 train:   0%|          | 0/20 [00:19<?, ?it/s, avg_loss=0.6719, num_batches=38/66, num_samples=38]
+      Epoch 0 train:   0%|          | 0/20 [00:21<?, ?it/s, avg_loss=0.6576, num_batches=39/66, num_samples=39]
+      Epoch 0 train:   0%|          | 0/20 [00:21<?, ?it/s, avg_loss=0.6442, num_batches=40/66, num_samples=40]
+      Epoch 0 train:   0%|          | 0/20 [00:21<?, ?it/s, avg_loss=0.6663, num_batches=41/66, num_samples=41]
+      Epoch 0 train:   0%|          | 0/20 [00:21<?, ?it/s, avg_loss=0.6547, num_batches=42/66, num_samples=42]
+      Epoch 0 train:   0%|          | 0/20 [00:22<?, ?it/s, avg_loss=0.6461, num_batches=43/66, num_samples=43]
+      Epoch 0 train:   0%|          | 0/20 [00:23<?, ?it/s, avg_loss=0.6381, num_batches=44/66, num_samples=44]
+      Epoch 0 train:   0%|          | 0/20 [00:24<?, ?it/s, avg_loss=0.6300, num_batches=45/66, num_samples=45]
+      Epoch 0 train:   0%|          | 0/20 [00:24<?, ?it/s, avg_loss=0.6247, num_batches=46/66, num_samples=46]
+      Epoch 0 train:   0%|          | 0/20 [00:26<?, ?it/s, avg_loss=0.6150, num_batches=47/66, num_samples=47]
+      Epoch 0 train:   0%|          | 0/20 [00:28<?, ?it/s, avg_loss=0.6467, num_batches=48/66, num_samples=48]
+      Epoch 0 train:   0%|          | 0/20 [00:29<?, ?it/s, avg_loss=0.6351, num_batches=49/66, num_samples=49]
+      Epoch 0 train:   0%|          | 0/20 [00:30<?, ?it/s, avg_loss=0.6245, num_batches=50/66, num_samples=50]
+      Epoch 0 train:   0%|          | 0/20 [00:30<?, ?it/s, avg_loss=0.6142, num_batches=51/66, num_samples=51]
+      Epoch 0 train:   0%|          | 0/20 [00:31<?, ?it/s, avg_loss=0.6060, num_batches=52/66, num_samples=52]
+      Epoch 0 train:   0%|          | 0/20 [00:33<?, ?it/s, avg_loss=0.6251, num_batches=53/66, num_samples=53]
+      Epoch 0 train:   0%|          | 0/20 [00:37<?, ?it/s, avg_loss=0.6150, num_batches=54/66, num_samples=54]
+      Epoch 0 train:   0%|          | 0/20 [00:38<?, ?it/s, avg_loss=0.6080, num_batches=55/66, num_samples=55]
+      Epoch 0 train:   0%|          | 0/20 [00:38<?, ?it/s, avg_loss=0.6049, num_batches=56/66, num_samples=56]
+      Epoch 0 train:   0%|          | 0/20 [00:39<?, ?it/s, avg_loss=0.6033, num_batches=57/66, num_samples=57]
+      Epoch 0 train:   0%|          | 0/20 [00:40<?, ?it/s, avg_loss=0.6121, num_batches=58/66, num_samples=58]
+      Epoch 0 train:   0%|          | 0/20 [00:40<?, ?it/s, avg_loss=0.6026, num_batches=59/66, num_samples=59]
+      Epoch 0 train:   0%|          | 0/20 [00:42<?, ?it/s, avg_loss=0.5984, num_batches=60/66, num_samples=60]
+      Epoch 0 train:   0%|          | 0/20 [00:50<?, ?it/s, avg_loss=0.5990, num_batches=61/66, num_samples=61]
+      Epoch 0 train:   0%|          | 0/20 [00:58<?, ?it/s, avg_loss=0.5990, num_batches=61/66, num_samples=61]
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/oem/HilbertWSI/scripts/run_benchmark.py", line 251, in <module>
+    main()
+  File "/home/oem/HilbertWSI/scripts/run_benchmark.py", line 246, in main
+    exp.train()
+  File "/home/oem/miniconda3/envs/hilbert-wsi-clean/lib/python3.11/site-packages/patho_bench/experiments/FinetuningExperiment.py", line 154, in train
+    self._run_single_epoch()
+  File "/home/oem/miniconda3/envs/hilbert-wsi-clean/lib/python3.11/site-packages/patho_bench/experiments/FinetuningExperiment.py", line 367, in _run_single_epoch
+    loss, info = self.model(batch, output='loss')
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/oem/miniconda3/envs/hilbert-wsi-clean/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/oem/miniconda3/envs/hilbert-wsi-clean/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/oem/miniconda3/envs/hilbert-wsi-clean/lib/python3.11/site-packages/patho_bench/TrainableSlideEncoder.py", line 61, in forward
+    slide_features = Pooler.pool(self.slide_encoder, slide_encoder_input, self.device)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/oem/miniconda3/envs/hilbert-wsi-clean/lib/python3.11/site-packages/patho_bench/Pooler.py", line 134, in pool
+    return model.forward(cleaned_sample, device)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/oem/HilbertWSI/hilbert_wsi/encoder.py", line 120, in forward
+    return self.backbone(seq, mask=mask)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/oem/miniconda3/envs/hilbert-wsi-clean/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/oem/miniconda3/envs/hilbert-wsi-clean/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/oem/HilbertWSI/hilbert_wsi/models/transformer.py", line 189, in forward
+    x = blk(x, cos, sin, sdpa_mask)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/oem/miniconda3/envs/hilbert-wsi-clean/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/oem/miniconda3/envs/hilbert-wsi-clean/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/oem/HilbertWSI/hilbert_wsi/models/transformer.py", line 108, in forward
+    x = x + self.ffn(self.norm_ffn(x))
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/oem/miniconda3/envs/hilbert-wsi-clean/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/oem/miniconda3/envs/hilbert-wsi-clean/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/oem/HilbertWSI/hilbert_wsi/models/transformer.py", line 63, in forward
+    return self.dropout(self.w_down(F.silu(self.w_gate(x)) * self.w_up(x)))
+                                    ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 380.00 MiB. GPU 0 has a total capacity of 11.76 GiB of which 223.50 MiB is free. Process 977 has 248.00 MiB memory in use. Including non-PyTorch memory, this process has 11.28 GiB memory in use. Of the allocated memory 10.19 GiB is allocated by PyTorch, and 799.55 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+
+ERROR conda.cli.main_run:execute(127): `conda run python -m scripts.run_benchmark --source cptac_ccrcc --task BAP1_mutation --experiment_type finetune --model_name hilbertwsi_hilbert_transformer --patch_features_dir /data/hilbert-wsi/features/CPTAC_CCRCC --splits_root splits --saveto runs/postfix_ccrcc_hilbert_transformer --model_kwargs_yaml configs/backbones/transformer_base.yaml --num_epochs 20 --gpu 0 --bag_size 2048` failed. (See above for error)
+Loaded split from splits/cptac_ccrcc/BAP1_mutation/k=all.tsv with 103 samples and 50 folds assigned.
+
+Experiment dir: runs/postfix_ccrcc_hilbert_transformer
+############################################################################################################
+Training: Fold 1 of 50...
+

@@ -1,0 +1,6 @@
+[2026-06-02 13:18:26] START ccrcc_bap1_v2 sweep (6 experiments, max_seq_len=2048)
+[2026-06-02 13:18:26] START hilbertwsi_hilbert_transformer
+[2026-06-02 15:20:25] END hilbertwsi_hilbert_transformer
+[2026-06-02 15:20:25] START hilbertwsi_random_transformer
+[2026-06-02 17:20:46] END hilbertwsi_random_transformer
+[2026-06-02 17:20:46] START hilbertwsi_2dpe_transformer

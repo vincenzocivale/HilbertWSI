@@ -110,6 +110,20 @@ split_path, config_path = SplitFactory.from_hf(
 
 ## Risultati — Contributo 1: Ordering vs No-ordering
 
+> ### ⚠ Pipeline audit 2026-06-02 — alcuni risultati INVALIDATI (re-run in corso)
+> Audit della pipeline ordering ha trovato 3 difetti (curva Hilbert verificata **corretta**):
+> - **BUG A — 2D PE quasi-costante** (`pos_encoding.py`): norm per-slide [0,1] + freq max 1.0 →
+>   ogni tile riceve PE quasi identico (cosine vicini/random ≥0.998, gap 0.0017). L'arm "2D PE" era
+>   di fatto **senza posizione**. → **tutti i numeri "2D PE" qui sotto sono invalidi.** Fix: indici-griglia (gap 0.286).
+> - **BUG B — truncation slab** (`encoder*.py`): `max_seq_len=2048` teneva i primi-N tile in ordine H5
+>   (column-major) = uno **slab spaziale** (scarta ~44% tessuto), applicato **solo a CCRCC, non UCEC**.
+>   → **il "reversal" UCEC→CCRCC e i numeri CCRCC sono confondati.** Fix: subsample uniforme; re-run con `bag_size`.
+> - **BUG C — 2D-PE+Mamba non era no-ordering** (`encoder_2d.py`): scansionava in ordine raster H5 ≈ snake.
+>   Fix: scan order randomizzato (posizione solo dal PE).
+> Fix applicati + 100 test passano. Re-run corretti (8 sweep): UCEC 2dpe full-seq, CCRCC ×6 `bag_size=2048`.
+> Dettagli: vedi `/home/oem/.claude/plans/cosmic-purring-tide.md`. Numeri non marcati = ancora validi
+> (UCEC ordering-vs-random full-seq: l' unico confronto pulito → ordering aiuta su dati piccoli).
+
 **Domanda**: stessa architettura, ordering SFC vs random/no-ordering → effetto causale?
 **Metrica primaria**: macro-OVR-AUC ± SE (50-fold Patho-Bench, CI = 2·SE ≈ 95%).
 **Legenda**: ⭐ best, ⚠ no-ordering control, 🔲 da eseguire

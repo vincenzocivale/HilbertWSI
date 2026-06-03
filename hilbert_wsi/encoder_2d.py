@@ -12,7 +12,16 @@ embedding_dim. The only difference is HOW positional information enters the mode
                                            → scan order (Mamba)
     2D path:  tile (x, y) coords → sin/cos PE → added to projected features
               Transformer: pe_type="none" (no RoPE, position is in input)
-              Mamba:        2D PE in input, but scan order is arbitrary (random)
+              Mamba:        2D PE in input; scan order is randomised per slide so
+                            position enters ONLY through the PE (see below)
+
+Scan order: tiles arrive from the H5 in column-major raster order, which is
+itself a spatial (snake-like) ordering. For Mamba — where position enters only
+through the scan — that would smuggle a strong 1D ordering into the
+"coordinate-only" arm and confound the comparison. So this encoder randomises
+the scan order per slide; the 2D PE is then the sole source of position. For the
+Transformer (pe_type="none") + mean pool the model is permutation-invariant, so
+the randomisation is a no-op there.
 """
 
 from __future__ import annotations
@@ -22,7 +31,9 @@ from typing import Any
 import torch
 from torch import Tensor, nn
 
+from hilbert_wsi.encoder import _subsample_batch
 from hilbert_wsi.models import get_backbone_class
+from hilbert_wsi.ordering.random_perm import RandomOrdering
 from hilbert_wsi.pos_encoding import TwoDSinCosPositionalEncoding
 
 
@@ -47,8 +58,9 @@ class TileCoordEncoder(nn.Module):
         - 2D PE is parameter-free (sin/cos), adding zero extra parameters.
         - For Transformer: pe_type="none" disables RoPE so position comes only from
           the 2D PE injected into input features.
-        - For Mamba: no explicit PE exists; 2D PE is in features and scan is over
-          the dataset-default tile order (typically raster-scan from H5 extraction).
+        - For Mamba: no explicit PE exists; 2D PE is in features and the scan
+          order is randomised per slide, so position comes only from the PE
+          (not from the column-major raster order tiles arrive in).
     """
 
     def __init__(
@@ -86,6 +98,10 @@ class TileCoordEncoder(nn.Module):
         self.proj_in = nn.Linear(input_dim, embedding_dim)
         self.dropout_layer = nn.Dropout(dropout)
         self.pos_enc = TwoDSinCosPositionalEncoding(embedding_dim)
+        # Per-slide random scan order: makes the 2D PE the sole source of
+        # position (see class docstring). Distinct base_seed from any subsample
+        # so the two permutations are independent.
+        self.scan_perm = RandomOrdering(base_seed=20260602)
         self.embedding_dim = embedding_dim
         self.precision = torch.float32
         self.max_seq_len = max_seq_len
@@ -98,7 +114,23 @@ class TileCoordEncoder(nn.Module):
         h = self.dropout_layer(self.proj_in(features))                        # (B, N, embedding_dim)
         pe = self.pos_enc(coords.to(features.device)).to(features.dtype)      # (B, N, embedding_dim)
         h = h + pe
+        # Randomise scan order per slide AFTER injecting the PE: position now
+        # lives only in `h` (via PE), never in the sequence order. No-op for the
+        # permutation-invariant Transformer; removes the raster-order confound
+        # for Mamba.
+        h, mask = self._randomize_scan(h, coords, mask)
         return self.backbone(h, mask=mask)                                     # backbone skips its own proj_in
+
+    def _randomize_scan(
+        self, h: Tensor, coords: Tensor, mask: Tensor | None
+    ) -> tuple[Tensor, Tensor | None]:
+        perms = torch.stack(
+            [self.scan_perm(coords[b]).to(h.device) for b in range(h.shape[0])], dim=0
+        )                                                                      # (B, N)
+        h = torch.gather(h, 1, perms.unsqueeze(-1).expand(-1, -1, h.shape[-1]))
+        if mask is not None:
+            mask = torch.gather(mask, 1, perms)
+        return h, mask
 
     def forward(self, sample: dict[str, Any], device: torch.device | str = "cpu") -> Tensor:
         features = sample["features"].to(device)
@@ -114,16 +146,16 @@ class TileCoordEncoder(nn.Module):
                 f"Expected 3D features (B,N,D) and coords (B,N,2) after reshape; "
                 f"got {tuple(features.shape)} and {tuple(coords.shape)}."
             )
-        if self.max_seq_len is not None and features.shape[1] > self.max_seq_len:
-            features = features[:, : self.max_seq_len]
-            coords = coords[:, : self.max_seq_len]
-
         mask = sample.get("mask")
         if mask is not None:
             mask = mask.to(device)
             if mask.dim() == 4 and mask.shape[1] == 1:
                 mask = mask.reshape(mask.shape[0], -1)
-            if self.max_seq_len is not None and mask.shape[1] > self.max_seq_len:
-                mask = mask[:, : self.max_seq_len]
+
+        # Cap with a uniform-random per-slide subsample (same representative
+        # subset as the paired 1D encoder), not a first-N raster slab. Prefer
+        # Patho-Bench `bag_size` for the OOM cap; this is a defensive fallback.
+        if self.max_seq_len is not None and features.shape[1] > self.max_seq_len:
+            features, coords, mask = _subsample_batch(features, coords, mask, self.max_seq_len)
 
         return self._encode(features, coords, mask=mask)

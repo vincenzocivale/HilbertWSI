@@ -1,0 +1,18 @@
+[2026-06-02 18:12:12] START postfix re-runs (8 sweeps)
+[2026-06-02 18:12:12] START hilbertwsi_2dpe_transformer (cptac_ucec/Immune_class)
+[2026-06-02 20:04:25] OK    hilbertwsi_2dpe_transformer
+[2026-06-02 20:04:25] START hilbertwsi_2dpe_mamba (cptac_ucec/Immune_class)
+[2026-06-02 20:11:50] OK    hilbertwsi_2dpe_mamba
+[2026-06-02 20:11:50] START hilbertwsi_hilbert_transformer (cptac_ccrcc/BAP1_mutation)
+[2026-06-02 20:12:55] OK    hilbertwsi_hilbert_transformer
+[2026-06-02 20:12:55] START hilbertwsi_random_transformer (cptac_ccrcc/BAP1_mutation)
+[2026-06-02 20:13:59] OK    hilbertwsi_random_transformer
+[2026-06-02 20:13:59] START hilbertwsi_2dpe_transformer (cptac_ccrcc/BAP1_mutation)
+[2026-06-02 20:15:02] OK    hilbertwsi_2dpe_transformer
+[2026-06-02 20:15:02] START hilbertwsi_hilbert_mamba (cptac_ccrcc/BAP1_mutation)
+[2026-06-02 20:15:31] OK    hilbertwsi_hilbert_mamba
+[2026-06-02 20:15:31] START hilbertwsi_random_mamba (cptac_ccrcc/BAP1_mutation)
+[2026-06-02 20:15:58] OK    hilbertwsi_random_mamba
+[2026-06-02 20:15:58] START hilbertwsi_2dpe_mamba (cptac_ccrcc/BAP1_mutation)
+[2026-06-02 20:16:26] OK    hilbertwsi_2dpe_mamba
+[2026-06-02 20:16:26] ALL DONE

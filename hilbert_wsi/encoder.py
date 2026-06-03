@@ -9,6 +9,28 @@ from torch import Tensor, nn
 
 from hilbert_wsi.models import get_backbone
 from hilbert_wsi.ordering import get_ordering
+from hilbert_wsi.ordering.random_perm import subsample_indices
+
+
+def _subsample_batch(
+    features: Tensor, coords: Tensor, mask: Tensor | None, max_seq_len: int
+) -> tuple[Tensor, Tensor, Tensor | None]:
+    """Uniform-random per-slide subsample to ``max_seq_len`` tiles (batched).
+
+    Called only when ``N > max_seq_len``; every row then yields exactly
+    ``max_seq_len`` kept indices, so the gathered result is rectangular. Shared
+    by both encoders so a 1D and a 2D run keep the **same** representative
+    subset (seed derives from coords), never a first-N raster slab.
+    """
+    B = features.shape[0]
+    keep = torch.stack(
+        [subsample_indices(coords[b], max_seq_len) for b in range(B)], dim=0
+    ).to(features.device)                                          # (B, max_seq_len)
+    features = torch.gather(features, 1, keep.unsqueeze(-1).expand(-1, -1, features.shape[-1]))
+    coords = torch.gather(coords, 1, keep.unsqueeze(-1).expand(-1, -1, coords.shape[-1]))
+    if mask is not None:
+        mask = torch.gather(mask, 1, keep)
+    return features, coords, mask
 
 
 class HilbertSequenceEncoder(nn.Module):
@@ -76,20 +98,23 @@ class HilbertSequenceEncoder(nn.Module):
                 f"Expected 3D features (B,N,D) and coords (B,N,2) after reshape; "
                 f"got {tuple(features.shape)} and {tuple(coords.shape)}."
             )
-        # Truncate in H5 arrival order before computing the SFC permutation.
-        # Both 1D and 2D PE encoders truncate the same tile subset (fairness for C1).
-        if self.max_seq_len is not None and features.shape[1] > self.max_seq_len:
-            features = features[:, : self.max_seq_len]
-            coords = coords[:, : self.max_seq_len]
-        perms = self._compute_perms(coords, features)
-        idx = torch.stack([p.to(features.device) for p in perms], dim=0)
-        seq = torch.gather(features, 1, idx.unsqueeze(-1).expand(-1, -1, features.shape[-1]))
         mask = sample.get("mask")
         if mask is not None:
             mask = mask.to(device)
             if mask.dim() == 4 and mask.shape[1] == 1:
                 mask = mask.reshape(mask.shape[0], -1)
-            if self.max_seq_len is not None and mask.shape[1] > self.max_seq_len:
-                mask = mask[:, : self.max_seq_len]
+
+        # Cap sequence length with a uniform-random per-slide subsample (NOT a
+        # first-N raster slab) before computing the SFC permutation. Keeps a
+        # spatially representative subset; the same subset for 1D and 2D
+        # encoders (fairness). Prefer Patho-Bench `bag_size` for the OOM cap;
+        # this is a defensive fallback.
+        if self.max_seq_len is not None and features.shape[1] > self.max_seq_len:
+            features, coords, mask = _subsample_batch(features, coords, mask, self.max_seq_len)
+
+        perms = self._compute_perms(coords, features)
+        idx = torch.stack([p.to(features.device) for p in perms], dim=0)
+        seq = torch.gather(features, 1, idx.unsqueeze(-1).expand(-1, -1, features.shape[-1]))
+        if mask is not None:
             mask = torch.gather(mask, 1, idx)
         return self.backbone(seq, mask=mask)
